@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Lux Store - Admin Panel</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+    
+    <div class="max-w-4xl mx-auto p-4 sm:p-6" x-data="{ tab: 'list' }">
+        
+        <!-- Header Banner -->
+        <header class="bg-slate-800 border border-slate-700 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-center mb-6 shadow-lg">
+            <div class="flex items-center space-x-3 mb-3 sm:mb-0">
+                <span class="text-2xl">⚡</span>
+                <h1 class="text-lg sm:text-xl font-bold tracking-wide">Modern Lux Store - Admin Panel</h1>
+            </div>
+            <a href="#" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-600 transition">Shop Page</a>
+        </header>
+
+        <!-- Summary Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl shadow">
+                <p class="text-xs text-slate-400 font-medium">Total Items</p>
+                <p class="text-2xl font-bold mt-1 text-white">{{ total_items }}</p>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl shadow">
+                <p class="text-xs text-slate-400 font-medium">Total Stock Qty</p>
+                <p class="text-2xl font-bold mt-1 text-white">{{ total_stock }}</p>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl shadow">
+                <p class="text-xs text-slate-400 font-medium">Inventory Value</p>
+                <p class="text-2xl font-bold mt-1 text-emerald-400">${{ "%.2f"|format(inventory_value) }}</p>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs Switcher -->
+        <div class="flex space-x-2 mb-6 border-b border-slate-800 pb-3">
+            <button @click="tab = 'list'" :class="tab === 'list' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'" class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 shadow">
+                <span>📦</span> <span>Inventory List</span>
+            </button>
+            <button @click="tab = 'add'" :class="tab === 'add' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'" class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 shadow">
+                <span>➕</span> <span>Add New Product</span>
+            </button>
+        </div>
+
+        <!-- Tab 1: Inventory List Table -->
+        <div x-show="tab === 'list'" class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg">
+            <h2 class="text-sm font-semibold text-slate-300 mb-4 uppercase tracking-wider">បញ្ជីស្តុកទំនិញបច្ចុប្បន្ន</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-700 text-xs text-slate-400 uppercase">
+                            <th class="p-3">Name</th>
+                            <th class="p-3">Category</th>
+                            <th class="p-3">Price ($)</th>
+                            <th class="p-3">Stock Qty</th>
+                            <th class="p-3 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-700/50 text-sm">
+                        {% for p in products %}
+                        <tr class="hover:bg-slate-700/30 transition">
+                            <td class="p-3 font-medium text-white">{{ p.name }}</td>
+                            <td class="p-3 text-slate-300">{{ p.category }}</td>
+                            <td class="p-3 text-emerald-400">${{ "%.2f"|format(p.price) }}</td>
+                            <td class="p-3">{{ p.stock }}</td>
+                            <td class="p-3 text-right">
+                                <span class="text-xs text-slate-500">Active</span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="p-6 text-center text-slate-500 italic">មិនទាន់មានទំនិញនៅក្នុងស្តុកឡើយ។ សូមចុចប៊ូតុង Add New Product ដើម្បីបញ្ចូលថ្មី។</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 2: Add New Product Form -->
+        <div x-show="tab === 'add'" class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg" style="display: none;">
+            <h2 class="text-sm font-semibold text-slate-300 mb-4 uppercase tracking-wider">បញ្ចូលទំនិញថ្មីចូលស្តុក</h2>
+            <form action="/add" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Product Name</label>
+                    <input type="text" name="name" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="បញ្ចូលឈ្មោះទំនិញ...">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Category</label>
+                        <select name="category" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm">
+                            <option value="Watches">Watches</option>
+                            <option value="Electronics">Electronics</option>
+                            <option value="Accessories">Accessories</option>
+                            <option value="Clothing">Clothing</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Stock Qty</label>
+                        <input type="number" name="stock" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="0">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Price ($)</label>
+                    <input type="number" step="0.01" name="price" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="0.00">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Select Images</label>
+                    <input type="file" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-400 text-xs file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-lg shadow transition text-sm mt-2">
+                    Save Product
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+</body>
+</html>
