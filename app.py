@@ -7,7 +7,7 @@ app = Flask(__name__)
 app.secret_key = "cambodia-inventory-secure-secret-key"
 
 SUPABASE_URL = "https://dwqyrlrylworstasglsi.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cXlybHJ5bHdvcnN0YXNnbsiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc4NTUwNTc3MCwiZXhwIjoyMTAxMDgxNzcwfQ.BjfkTVs-BOkl8gdCvX4rEuN8N4L8Y3KQkzRxmGipR1U"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cXlybHJ5bHdvcnN0YXNnbsiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc4FS01Mjc3MCwiZXhwIjoyMTAxMDgxNzcwfQ.BjfkTVs-BOkl8gdCvX4rEuN8N4L8Y3KQkzRxmGipR1U"
 
 def supabase_request(endpoint, method="GET", data=None):
     url = f"{SUPABASE_URL}/rest/v1/{endpoint}"
@@ -27,28 +27,38 @@ def supabase_request(endpoint, method="GET", data=None):
         print(f"Supabase Error: {e}")
         return []
 
-LOGIN_TEMPLATE = """
+AUTH_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="km">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - SaaS Inventory Hub</title>
+    <title>SaaS Inventory Hub - Authentication</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-gray-100 min-h-screen flex items-center justify-center font-sans p-4">
-    <div class="max-w-md w-full bg-slate-900/80 backdrop-blur-md border border-slate-700/60 rounded-2xl p-8 shadow-2xl">
+    <div class="max-w-md w-full bg-slate-900/90 backdrop-blur-xl border border-slate-700/60 rounded-2xl p-8 shadow-2xl" x-data="{ mode: '{{ mode|default('login') }}' }">
         <div class="text-center mb-6">
             <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-600/25 border border-emerald-500/30 text-emerald-400 text-2xl mb-3 shadow-inner">⚡</div>
             <h1 class="text-2xl font-bold tracking-tight text-white">SaaS Inventory Hub</h1>
-            <p class="text-xs text-slate-400 mt-1">សូមបញ្ចូលគណនីហាងរបស់អ្នកដើម្បីចូលកាន់ប្រព័ន្ធ</p>
+            <p class="text-xs text-slate-400 mt-1" x-text="mode === 'login' ? 'សូមបញ្ចូលគណនីហាងរបស់អ្នកដើម្បីចូលកាន់ប្រព័ន្ធ' : 'បង្កើតហាង និងគណនី Admin របស់អ្នកថ្មី'"></p>
         </div>
+
         {% if error %}
         <div class="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3.5 rounded-xl mb-4 text-center">
             ⚠️ {{ error }}
         </div>
         {% endif %}
-        <form action="/login" method="POST" class="space-y-4">
+
+        <!-- Tab Switcher Header -->
+        <div class="grid grid-cols-2 gap-1 bg-slate-950 p-1 rounded-xl mb-6 border border-slate-800">
+            <button @click="mode = 'login'" :class="mode === 'login' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'" class="py-2 text-xs font-semibold rounded-lg transition">ចូលគណនី (Login)</button>
+            <button @click="mode = 'signup'" :class="mode === 'signup' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'" class="py-2 text-xs font-semibold rounded-lg transition">ចុះឈ្មោះហាង (Sign Up)</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <form action="/login" method="POST" class="space-y-4" x-show="mode === 'login'">
             <div>
                 <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Username</label>
                 <input type="text" name="username" required class="w-full bg-slate-950/60 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500" placeholder="ឈ្មោះអ្នកប្រើប្រាស់">
@@ -59,36 +69,9 @@ LOGIN_TEMPLATE = """
             </div>
             <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl shadow-lg transition text-sm">Login to Store</button>
         </form>
-        <div class="text-center mt-5 text-xs text-slate-400">
-            មិនទាន់មានហាងមែនទេ? <a href="/signup" class="text-emerald-400 font-semibold hover:underline">ចុះឈ្មោះហាងថ្មី (Sign Up)</a>
-        </div>
-    </div>
-</body>
-</html>
-"""
 
-SIGNUP_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="km">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up Store - SaaS Inventory Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-gray-100 min-h-screen flex items-center justify-center font-sans p-4">
-    <div class="max-w-md w-full bg-slate-900/80 backdrop-blur-md border border-slate-700/60 rounded-2xl p-8 shadow-2xl">
-        <div class="text-center mb-6">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-600/25 border border-emerald-500/30 text-emerald-400 text-2xl mb-3 shadow-inner">🏪</div>
-            <h1 class="text-2xl font-bold tracking-tight text-white">Register New Store</h1>
-            <p class="text-xs text-slate-400 mt-1">បង្កើតហាង និងគណនី Admin របស់អ្នកថ្មី</p>
-        </div>
-        {% if error %}
-        <div class="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3.5 rounded-xl mb-4 text-center">
-            ⚠️ {{ error }}
-        </div>
-        {% endif %}
-        <form action="/signup" method="POST" class="space-y-4">
+        <!-- SIGNUP FORM -->
+        <form action="/signup" method="POST" class="space-y-4" x-show="mode === 'signup'" style="display: none;">
             <div>
                 <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Store Name (ឈ្មោះហាង)</label>
                 <input type="text" name="store_name" required class="w-full bg-slate-950/60 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500" placeholder="ឧ. ហាងលក់ទំនិញ ABC">
@@ -107,9 +90,6 @@ SIGNUP_TEMPLATE = """
             </div>
             <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl shadow-lg transition text-sm">Create Store & Account</button>
         </form>
-        <div class="text-center mt-5 text-xs text-slate-400">
-            មានគណនីរួចហើយ? <a href="/login" class="text-emerald-400 font-semibold hover:underline">ចូលគណនី (Login)</a>
-        </div>
     </div>
 </body>
 </html>
@@ -196,76 +176,68 @@ INDEX_TEMPLATE = """
 </html>
 """
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/", methods=["GET"])
+def auth_page():
+    if 'user' in session:
+        return redirect(url_for("index"))
+    return render_template_string(AUTH_TEMPLATE, mode="login", error=None)
+
+@app.route("/login", methods=["POST"])
 def login():
-    error = None
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        users = supabase_request(f"users?username=eq.{username}&password=eq.{password}&select=*")
-        if users and len(users) > 0:
-            user = users[0]
-            session['user'] = user['name']
-            session['store_id'] = user['store_id']
-            session['role'] = user.get('role', 'Admin')
-            return redirect(url_for("index"))
-        else:
-            error = "ឈ្មោះអ្នកប្រើប្រាស់ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ!"
-    return render_template_string(LOGIN_TEMPLATE, error=error)
-
-@app.route("/signup", methods=["GET", "POST"])
-def signup():
-    error = None
-    if request.method == "POST":
-        store_name = request.form.get("store_name")
-        admin_fullname = request.form.get("admin_fullname")
-        username = request.form.get("username")
-        password = request.form.get("password")
-
-        existing_user = supabase_request(f"users?username=eq.{username}&select=*")
-        if existing_user and len(existing_user) > 0:
-            error = "ឈ្មោះ Username នេះមានគេប្រើរួចហើយ សូមជ្រើសរើសផ្សេង!"
-            return render_template_string(SIGNUP_TEMPLATE, error=error)
-
-        new_store_data = {"name": store_name}
-        created_stores = supabase_request("stores", method="POST", data=new_store_data)
-        
-        if not created_stores or len(created_stores) == 0:
-            error = "មានបញ្ហាពេលបង្កើតហាង សូមព្យាយាមម្ដងទៀត!"
-            return render_template_string(SIGNUP_TEMPLATE, error=error)
-            
-        new_store_id = created_stores[0]["id"]
-
-        new_user_data = {
-            "store_id": new_store_id,
-            "name": admin_fullname,
-            "username": username,
-            "password": password,
-            "role": "Admin"
-        }
-        created_users = supabase_request("users", method="POST", data=new_user_data)
-
-        if not created_users or len(created_users) == 0:
-            error = "បង្កើតហាងបានហើយ ប៉ុន្តែមានបញ្ហាពេលបង្កើតគណនី Admin!"
-            return render_template_string(SIGNUP_TEMPLATE, error=error)
-
-        user = created_users[0]
+    username = request.form.get("username")
+    password = request.form.get("password")
+    users = supabase_request(f"users?username=eq.{username}&password=eq.{password}&select=*")
+    if users and len(users) > 0:
+        user = users[0]
         session['user'] = user['name']
         session['store_id'] = user['store_id']
         session['role'] = user.get('role', 'Admin')
         return redirect(url_for("index"))
+    return render_template_string(AUTH_TEMPLATE, mode="login", error="ឈ្មោះអ្នកប្រើប្រាស់ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ!")
 
-    return render_template_string(SIGNUP_TEMPLATE, error=error)
+@app.route("/signup", methods=["POST"])
+def signup():
+    store_name = request.form.get("store_name")
+    admin_fullname = request.form.get("admin_fullname")
+    username = request.form.get("username")
+    password = request.form.get("password")
+
+    existing_user = supabase_request(f"users?username=eq.{username}&select=*")
+    if existing_user and len(existing_user) > 0:
+        return render_template_string(AUTH_TEMPLATE, mode="signup", error="ឈ្មោះ Username នេះមានគេប្រើរួចហើយ!")
+
+    created_stores = supabase_request("stores", method="POST", data={"name": store_name})
+    if not created_stores:
+        return render_template_string(AUTH_TEMPLATE, mode="signup", error="មានបញ្ហាពេលបង្កើតហាង សូមព្យាយាមម្ដងទៀត!")
+        
+    new_store_id = created_stores[0]["id"]
+    created_users = supabase_request("users", method="POST", data={
+        "store_id": new_store_id,
+        "name": admin_fullname,
+        "username": username,
+        "password": password,
+        "role": "Admin"
+    })
+
+    if not created_users:
+        return render_template_string(AUTH_TEMPLATE, mode="signup", error="មានបញ្ហាពេលបង្កើតគណនី Admin!")
+
+    user = created_users[0]
+    session['user'] = user['name']
+    session['store_id'] = user['store_id']
+    session['role'] = user.get('role', 'Admin')
+    return redirect(url_for("index"))
 
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    return redirect(url_for("auth_page"))
 
-@app.route("/")
+@app.route("/dashboard")
 def index():
     if 'user' not in session:
-        return redirect(url_for("login"))
+        return redirect(url_for("auth_page"))
+        
     current_store_id = session.get('store_id')
     products = supabase_request(f"products?store_id=eq.{current_store_id}&select=*")
     if not isinstance(products, list): products = []
@@ -287,16 +259,16 @@ def index():
 
 @app.route("/add", methods=["POST"])
 def add_product():
-    if 'user' not in session: return redirect(url_for("login"))
-    new_product = {
+    if 'user' not in session: return redirect(url_for("auth_page"))
+    supabase_request("products", method="POST", data={
         "store_id": session.get('store_id'),
         "name": request.form.get("name"),
         "category": request.form.get("category") or "General",
         "price": float(request.form.get("price") or 0.0),
         "stock": int(request.form.get("stock") or 0)
-    }
-    supabase_request("products", method="POST", data=new_product)
+    })
     return redirect(url_for("index"))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
