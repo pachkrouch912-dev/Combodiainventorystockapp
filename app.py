@@ -27,8 +27,6 @@ def supabase_request(endpoint, method="GET", data=None):
         print(f"Supabase Error: {e}")
         return []
 
-# --- HTML TEMPLATES ---
-
 LOGIN_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="km">
@@ -41,7 +39,7 @@ LOGIN_TEMPLATE = """
 <body class="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-gray-100 min-h-screen flex items-center justify-center font-sans p-4">
     <div class="max-w-md w-full bg-slate-900/80 backdrop-blur-md border border-slate-700/60 rounded-2xl p-8 shadow-2xl">
         <div class="text-center mb-6">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 text-2xl mb-3 shadow-inner">⚡</div>
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-600/25 border border-emerald-500/30 text-emerald-400 text-2xl mb-3 shadow-inner">⚡</div>
             <h1 class="text-2xl font-bold tracking-tight text-white">SaaS Inventory Hub</h1>
             <p class="text-xs text-slate-400 mt-1">សូមបញ្ចូលគណនីហាងរបស់អ្នកដើម្បីចូលកាន់ប្រព័ន្ធ</p>
         </div>
@@ -81,7 +79,7 @@ SIGNUP_TEMPLATE = """
 <body class="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-gray-100 min-h-screen flex items-center justify-center font-sans p-4">
     <div class="max-w-md w-full bg-slate-900/80 backdrop-blur-md border border-slate-700/60 rounded-2xl p-8 shadow-2xl">
         <div class="text-center mb-6">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 text-2xl mb-3 shadow-inner">🏪</div>
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-600/25 border border-emerald-500/30 text-emerald-400 text-2xl mb-3 shadow-inner">🏪</div>
             <h1 class="text-2xl font-bold tracking-tight text-white">Register New Store</h1>
             <p class="text-xs text-slate-400 mt-1">បង្កើតហាង និងគណនី Admin របស់អ្នកថ្មី</p>
         </div>
@@ -198,8 +196,6 @@ INDEX_TEMPLATE = """
 </html>
 """
 
-# --- FLASK ROUTES ---
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = None
@@ -226,13 +222,11 @@ def signup():
         username = request.form.get("username")
         password = request.form.get("password")
 
-        # ១. ឆែកមើលក្រែងលោ Username ហ្នឹងមានគេប្រើរួចហើយ
         existing_user = supabase_request(f"users?username=eq.{username}&select=*")
         if existing_user and len(existing_user) > 0:
             error = "ឈ្មោះ Username នេះមានគេប្រើរួចហើយ សូមជ្រើសរើសផ្សេង!"
             return render_template_string(SIGNUP_TEMPLATE, error=error)
 
-        # ២. បង្កើត Store ថ្មីក្នុងតារាង stores
         new_store_data = {"name": store_name}
         created_stores = supabase_request("stores", method="POST", data=new_store_data)
         
@@ -242,7 +236,6 @@ def signup():
             
         new_store_id = created_stores[0]["id"]
 
-        # ៣. បង្កើត User Admin ថ្មី ភ្ជាប់ជាមួយ store_id នោះ
         new_user_data = {
             "store_id": new_store_id,
             "name": admin_fullname,
@@ -256,7 +249,6 @@ def signup():
             error = "បង្កើតហាងបានហើយ ប៉ុន្តែមានបញ្ហាពេលបង្កើតគណនី Admin!"
             return render_template_string(SIGNUP_TEMPLATE, error=error)
 
-        # ៤. ពេលចុះឈ្មោះរួច ឱ្យ Login ចូលស្វ័យប្រវត្តិ
         user = created_users[0]
         session['user'] = user['name']
         session['store_id'] = user['store_id']
@@ -308,4 +300,3 @@ def add_product():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-
