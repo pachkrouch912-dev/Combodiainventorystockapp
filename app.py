@@ -6,7 +6,7 @@ import json
 app = Flask(__name__)
 app.secret_key = "cambodia-inventory-secure-secret-key"
 
-SUPABASE_URL = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cXlybHJ5bHdvcnN0YXNnbHNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1MDU3NzAsImV4cCI6MjEwMTA4MTc3MH0.BjfkTVs-BOkl8gdCvX4rEuN8N4L8Y3KQkzRxmGipR1U"
+SUPABASE_URL = "https://dwqyrlrylworstasglsi.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cXlybHJ5bHdvcnN0YXNnbHNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTUwNTc3MCwiZXhwIjoyMTAxMDgxNzcwfQ.gR5rqaHs44_4pH-ufkdRRhsx1rt2jEAnP1d905Go5Rc"
 
 def supabase_request(endpoint, method="GET", data=None):
