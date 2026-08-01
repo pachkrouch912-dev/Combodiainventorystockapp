@@ -8,7 +8,7 @@ app = Flask(__name__)
 app.secret_key = "cambodia-inventory-secure-secret-key"
 
 SUPABASE_URL = "https://dwqyrlrylworstasglsi.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cXlybHJ5bHdvcnN0YXNnbHNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4FSZDNDU3NzAxLCJleHAiOjIxMDEwODE3NzB9.gR5rqaHs44_4pH-ufkdRRhsx1rt2jEAnP1d905Go5Rc"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cXlybHJ5bHdvcnN0YXNnbHNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTUwNTc3MCwiZXhwIjoyMTAxMDgxNzcwfQ.gR5rqaHs44_4pH-ufkdRRhsx1rt2jEAnP1d905Go5Rc"
 
 def supabase_request(endpoint, method="GET", data=None):
     url = f"{SUPABASE_URL}/rest/v1/{endpoint}"
@@ -393,14 +393,9 @@ def signup():
     if existing_user and len(existing_user) > 0:
         return render_template_string(AUTH_TEMPLATE, mode="signup", error="ឈ្មោះ Username នេះមានគេប្រើរួចហើយ!")
 
-    # បញ្ជូនទិន្នន័យទៅកាន់តារាង stores (ប្រើទាំង name និង store_name ក្នុងកូដដើម្បីការពារបញ្ហា column mismatch)
-    created_stores = supabase_request("stores", method="POST", data={"name": store_name, "store_name": store_name})
+    created_stores = supabase_request("stores", method="POST", data={"name": store_name})
     if not created_stores:
-        # បើនៅតែ Error អាចសាកល្បងប្តូរទៅប្រើ dictionary ត្រឹម column ដែលតារាងលោកអ្នកមានពិតប្រាកដ
-        created_stores = supabase_request("stores", method="POST", data={"name": store_name})
-        
-    if not created_stores:
-        return render_template_string(AUTH_TEMPLATE, mode="signup", error="មានបញ្ហាពេលបង្កើតហាង សូមពិនិត្យមើល Supabase RLS ឬ Table Column!")
+        return render_template_string(AUTH_TEMPLATE, mode="signup", error="មានបញ្ហាពេលបង្កើតហាង សូមព្យាយាមម្ដងទៀត!")
         
     new_store_id = created_stores[0]["id"]
     created_users = supabase_request("users", method="POST", data={
@@ -534,3 +529,4 @@ def sell_product():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
