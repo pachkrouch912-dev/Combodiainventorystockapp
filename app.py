@@ -2,6 +2,7 @@ import os
 from flask import Flask, render_template_string, request, redirect, url_for, session
 import urllib.request
 import json
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = "cambodia-inventory-secure-secret-key"
@@ -115,12 +116,13 @@ INDEX_TEMPLATE = """
             </div>
         </header>
 
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-6 bg-white p-2 rounded-lg shadow-sm border border-gray-200">
-            <button @click="tab = 'dashboard'" :class="tab === 'dashboard' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-800'" class="px-3 py-2 rounded-md text-xs font-semibold text-center">Home</button>
-            <button @click="tab = 'add'" :class="tab === 'add' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-800'" class="px-3 py-2 rounded-md text-xs font-semibold text-center">Add Product</button>
-            <button @click="tab = 'stock'" :class="tab === 'stock' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-800'" class="px-3 py-2 rounded-md text-xs font-semibold text-center">Stock</button>
-            <button @click="tab = 'sales'" :class="tab === 'sales' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-800'" class="px-3 py-2 rounded-md text-xs font-semibold text-center">Sales</button>
-            <button @click="tab = 'users'" :class="tab === 'users' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-800'" class="px-3 py-2 rounded-md text-xs font-semibold text-center">Users</button>
+        <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-6 bg-white p-2 rounded-lg shadow-sm border border-gray-200">
+            <button @click="tab = 'dashboard'" :class="tab === 'dashboard' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-800'" class="px-2 py-2 rounded-md text-xs font-semibold text-center">Home</button>
+            <button @click="tab = 'pos'" :class="tab === 'pos' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-800'" class="px-2 py-2 rounded-md text-xs font-semibold text-center">POS Sell</button>
+            <button @click="tab = 'add'" :class="tab === 'add' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-800'" class="px-2 py-2 rounded-md text-xs font-semibold text-center">Add Product</button>
+            <button @click="tab = 'stock'" :class="tab === 'stock' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-800'" class="px-2 py-2 rounded-md text-xs font-semibold text-center">Stock</button>
+            <button @click="tab = 'sales'" :class="tab === 'sales' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-800'" class="px-2 py-2 rounded-md text-xs font-semibold text-center">Sales History</button>
+            <button @click="tab = 'logs'" :class="tab === 'logs' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-800'" class="px-2 py-2 rounded-md text-xs font-semibold text-center">Movement</button>
         </div>
 
         <div x-show="tab === 'dashboard'" class="space-y-4">
@@ -129,6 +131,27 @@ INDEX_TEMPLATE = """
                 <div class="bg-white border p-4 rounded-lg shadow-sm"><p class="text-xs text-gray-500">Total Stock Qty</p><p class="text-2xl font-bold mt-1">{{ total_stock }}</p></div>
                 <div class="bg-white border p-4 rounded-lg shadow-sm"><p class="text-xs text-gray-500">Inventory Asset Value</p><p class="text-2xl font-bold text-emerald-600 mt-1">${{ "%.2f"|format(inventory_value) }}</p></div>
             </div>
+        </div>
+
+        <!-- POS SELL TAB -->
+        <div x-show="tab === 'pos'" class="bg-white border rounded-lg p-5 shadow-sm" style="display: none;">
+            <h2 class="text-sm font-bold text-gray-700 mb-4 uppercase">POS - លក់ទំនិញ (Checkout)</h2>
+            <form action="/sell" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">ជ្រើសរើសទំនិញ (Select Product)</label>
+                    <select name="product_id" required class="w-full border rounded-md px-3 py-2 text-sm bg-white">
+                        <option value="">-- ជ្រើសរើសទំនិញ --</option>
+                        {% for p in products %}
+                        <option value="{{ p.id }}">{{ p.name }} (សល់ក្នុងស្តុក: {{ p.stock }} | តម្លៃ: ${{ "%.2f"|format(p.price) }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">ចំនួនលក់ (Quantity)</label>
+                    <input type="number" name="quantity" min="1" value="1" required class="w-full border rounded-md px-3 py-2 text-sm">
+                </div>
+                <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-2.5 rounded-md text-sm">គិតលុយ និងកាត់ស្តុក (Confirm Sale)</button>
+            </form>
         </div>
 
         <div x-show="tab === 'add'" class="bg-white border rounded-lg p-5 shadow-sm" style="display: none;">
@@ -152,7 +175,7 @@ INDEX_TEMPLATE = """
                 <thead><tr class="border-b text-xs text-gray-500 uppercase"><th class="p-3">Name</th><th class="p-3">Category</th><th class="p-3">Price</th><th class="p-3">Stock</th></tr></thead>
                 <tbody class="divide-y text-sm">
                     {% for p in products %}
-                    <tr><td class="p-3">{{ p.name }}</td><td class="p-3">{{ p.category }}</td><td class="p-3">${{ "%.2f"|format(p.price) }}</td><td class="p-3">{{ p.stock }}</td></tr>
+                    <tr><td class="p-3">{{ p.name }}</td><td class="p-3">{{ p.category }}</td><td class="p-3">${{ "%.2f"|format(p.price) }}</td><td class="p-3 font-semibold">{{ p.stock }}</td></tr>
                     {% else %}
                     <tr><td colspan="4" class="p-6 text-center text-gray-400 italic">មិនមានទំនិញក្នុងស្តុកទេ។</td></tr>
                     {% endfor %}
@@ -160,14 +183,41 @@ INDEX_TEMPLATE = """
             </table>
         </div>
 
-        <div x-show="tab === 'sales'" class="bg-white border rounded-lg p-5 shadow-sm" style="display: none;"><p class="text-sm text-gray-500 italic text-center">មិនទាន់មានប្រវត្តិការលក់។</p></div>
-
-        <div x-show="tab === 'users'" class="bg-white border rounded-lg p-5 shadow-sm space-y-3" style="display: none;">
-            <h2 class="text-sm font-bold text-gray-700 mb-4 uppercase">Store Users</h2>
-            {% for u in users_list %}
-            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md border"><p class="text-sm font-semibold">{{ u.name }} ({{ u.username }})</p><span class="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full">{{ u.role }}</span></div>
-            {% endfor %}
+        <!-- SALES HISTORY TAB -->
+        <div x-show="tab === 'sales'" class="bg-white border rounded-lg p-5 shadow-sm" style="display: none;">
+            <h2 class="text-sm font-bold text-gray-700 mb-4 uppercase">Sales History (ប្រវត្តិការលក់)</h2>
+            <table class="w-full text-left border-collapse">
+                <thead><tr class="border-b text-xs text-gray-500 uppercase"><th class="p-3">Product</th><th class="p-3">Qty</th><th class="p-3">Total ($)</th><th class="p-3">Date</th></tr></thead>
+                <tbody class="divide-y text-sm">
+                    {% for s in sales_list %}
+                    <tr><td class="p-3">{{ s.product_name }}</td><td class="p-3">{{ s.quantity }}</td><td class="p-3 text-emerald-600 font-semibold">${{ "%.2f"|format(s.total_price) }}</td><td class="p-3 text-xs text-gray-500">{{ s.created_at }}</td></tr>
+                    {% else %}
+                    <tr><td colspan="4" class="p-6 text-center text-gray-400 italic">មិនទាន់មានប្រវត្តិការលក់។</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+
+        <!-- STOCK MOVEMENT TAB -->
+        <div x-show="tab === 'logs'" class="bg-white border rounded-lg p-5 shadow-sm" style="display: none;">
+            <h2 class="text-sm font-bold text-gray-700 mb-4 uppercase">Stock Movement (ប្រវត្តិបម្រែបម្រួលស្តុក)</h2>
+            <table class="w-full text-left border-collapse">
+                <thead><tr class="border-b text-xs text-gray-500 uppercase"><th class="p-3">Type</th><th class="p-3">Details</th><th class="p-3">Qty Change</th><th class="p-3">Date</th></tr></thead>
+                <tbody class="divide-y text-sm">
+                    {% for m in movements %}
+                    <tr>
+                        <td class="p-3"><span class="px-2 py-1 text-xs rounded {{ 'bg-red-100 text-red-700' if m.type == 'OUT' else 'bg-green-100 text-green-700' }}">{{ m.type }}</span></td>
+                        <td class="p-3">{{ m.description }}</td>
+                        <td class="p-3 font-bold {{ 'text-red-600' if m.type == 'OUT' else 'text-emerald-600' }}">{{ m.qty_change }}</td>
+                        <td class="p-3 text-xs text-gray-500">{{ m.created_at }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="p-6 text-center text-gray-400 italic">មិនទាន់មានទិន្នន័យ Stock Movement.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
     </div>
 </body>
 </html>
@@ -201,7 +251,7 @@ def signup():
 
     existing_user = supabase_request(f"users?username=eq.{username}&select=*")
     if existing_user and len(existing_user) > 0:
-        return render_template_string(AUTH_TEMPLATE, mode="signup", error="ឈ្មោះ Username នេះមានគេប្រើរួចហើយ!")
+        return render_template_string(AUTH_TEMPLATE, mode="signup", error="ឈ្មោះ Username នេះមានគេប្រើរួចแล้ว!")
 
     created_stores = supabase_request("stores", method="POST", data={"name": store_name})
     if not created_stores:
@@ -238,8 +288,12 @@ def index():
     current_store_id = session.get('store_id')
     products = supabase_request(f"products?store_id=eq.{current_store_id}&select=*")
     if not isinstance(products, list): products = []
-    users_list = supabase_request(f"users?store_id=eq.{current_store_id}&select=*")
-    if not isinstance(users_list, list): users_list = []
+    
+    sales_list = supabase_request(f"sales?store_id=eq.{current_store_id}&select=*")
+    if not isinstance(sales_list, list): sales_list = []
+
+    movements = supabase_request(f"stock_movements?store_id=eq.{current_store_id}&select=*")
+    if not isinstance(movements, list): movements = []
     
     total_items = len(products)
     total_stock = sum(int(p.get("stock", 0) or 0) for p in products)
@@ -247,7 +301,8 @@ def index():
     
     return render_template_string(INDEX_TEMPLATE, 
                            products=products, 
-                           users_list=users_list,
+                           sales_list=sales_list,
+                           movements=movements,
                            total_items=total_items, 
                            total_stock=total_stock, 
                            inventory_value=inventory_value,
@@ -257,13 +312,73 @@ def index():
 @app.route("/add", methods=["POST"])
 def add_product():
     if 'user' not in session: return redirect(url_for("auth_page"))
-    supabase_request("products", method="POST", data={
-        "store_id": session.get('store_id'),
-        "name": request.form.get("name"),
+    store_id = session.get('store_id')
+    name = request.form.get("name")
+    stock_qty = int(request.form.get("stock") or 0)
+    
+    # Insert Product
+    prod_res = supabase_request("products", method="POST", data={
+        "store_id": store_id,
+        "name": name,
         "category": request.form.get("category") or "General",
         "price": float(request.form.get("price") or 0.0),
-        "stock": int(request.form.get("stock") or 0)
+        "stock": stock_qty
     })
+    
+    # Log Movement
+    if prod_res:
+        supabase_request("stock_movements", method="POST", data={
+            "store_id": store_id,
+            "type": "IN",
+            "description": f"Added product: {name}",
+            "qty_change": stock_qty
+        })
+        
+    return redirect(url_for("index"))
+
+@app.route("/sell", methods=["POST"])
+def sell_product():
+    if 'user' not in session: return redirect(url_for("auth_page"))
+    store_id = session.get('store_id')
+    product_id = request.form.get("product_id")
+    qty = int(request.form.get("quantity") or 1)
+    
+    # Get product info
+    products = supabase_request(f"products?id=eq.{product_id}&select=*")
+    if not products: return redirect(url_for("index"))
+    product = products[0]
+    
+    current_stock = int(product.get("stock", 0))
+    if current_stock < qty:
+        return redirect(url_for("index")) # ស្តុកមិនគ្រប់
+        
+    new_stock = current_stock - qty
+    total_price = float(product.get("price", 0)) * qty
+    
+    # Update product stock in Supabase
+    urllib.request.urlopen(urllib.request.Request(
+        f"{SUPABASE_URL}/rest/v1/products?id=eq.{product_id}",
+        data=json.dumps({"stock": new_stock}).encode("utf-8"),
+        headers={"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"},
+        method="PATCH"
+    ))
+    
+    # Record Sale
+    supabase_request("sales", method="POST", data={
+        "store_id": store_id,
+        "product_name": product['name'],
+        "quantity": qty,
+        "total_price": total_price
+    })
+    
+    # Record Stock Movement
+    supabase_request("stock_movements", method="POST", data={
+        "store_id": store_id,
+        "type": "OUT",
+        "description": f"Sold: {product['name']}",
+        "qty_change": -qty
+    })
+    
     return redirect(url_for("index"))
 
 if __name__ == "__main__":
