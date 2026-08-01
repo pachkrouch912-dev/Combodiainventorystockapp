@@ -8,7 +8,7 @@ app = Flask(__name__)
 app.secret_key = "cambodia-inventory-secure-secret-key"
 
 SUPABASE_URL = "https://dwqyrlrylworstasglsi.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cXlybHJ5bHdvcnN0YXNnbHNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTUwNTc3MCwiZXhwIjoyMTAxMDgxNzcwfQ.gR5rqaHs44_4pH-ufkdRRhsx1rt2jEAnP1d905Go5Rc" # (ប្រើ key ដើមរបស់បង)
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cXlybHJ5bHdvcnN0YXNnbHNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTUwNTc3MCwiZXhwIjoyMTAxMDgxNzcwfQ.gR5rqaHs44_4pH-ufkdRRhsx1rt2jEAnP1d905Go5Rc"
 
 def supabase_request(endpoint, method="GET", data=None):
     url = f"{SUPABASE_URL}/rest/v1/{endpoint}"
@@ -102,7 +102,6 @@ INDEX_TEMPLATE = """
     <title>Store Dashboard - SaaS Inventory</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
     <div class="max-w-6xl mx-auto p-3 sm:p-6 lg:p-8" x-data="{ tab: 'dashboard' }">
@@ -134,9 +133,8 @@ INDEX_TEMPLATE = """
             <button @click="tab = 'logs'" :class="tab === 'logs' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800'" class="py-2.5 px-2 rounded-xl text-xs font-semibold text-center transition flex flex-col sm:flex-row items-center justify-center gap-1"><span>📋</span><span>Movement</span></button>
         </div>
 
-        <!-- DASHBOARD HOME TAB (WITH CHARTS & LOW STOCK ALERTS) -->
-        <div x-show="tab === 'dashboard'" class="space-y-6">
-            <!-- STATS CARDS -->
+        <!-- DASHBOARD HOME TAB -->
+        <div x-show="tab === 'dashboard'" class="space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Items</p>
@@ -150,51 +148,6 @@ INDEX_TEMPLATE = """
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Inventory Asset Value</p>
                     <p class="text-3xl font-bold text-emerald-400 mt-2">${{ "%.2f"|format(inventory_value) }}</p>
                 </div>
-            </div>
-
-            <!-- CHARTS SECTION -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Sales Overview Chart -->
-                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                    <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>📊</span> <span>ក្រាហ្វិកការលក់ (Sales Overview)</span></h3>
-                    <div class="relative h-64">
-                        <canvas id="salesChart"></canvas>
-                    </div>
-                </div>
-                <!-- Stock Movement Distribution -->
-                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                    <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>📈</span> <span>ចលនាស្តុក ចូល/ចេញ (Movement Summary)</span></h3>
-                    <div class="relative h-64">
-                        <canvas id="movementChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- LOW STOCK ALERT TABLE -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl overflow-x-auto">
-                <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2 text-amber-400"><span>⚠️</span> <span>ទំនិញជិតអស់ក្នុងស្តុក (Low Stock Alert < 10)</span></h3>
-                <table class="w-full text-left border-collapse min-w-[500px]">
-                    <thead>
-                        <tr class="border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                            <th class="p-3">Product Name</th>
-                            <th class="p-3">Category</th>
-                            <th class="p-3">Price</th>
-                            <th class="p-3">Current Stock</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-800 text-sm">
-                        {% for p in low_stock_products %}
-                        <tr class="hover:bg-slate-800/50 transition">
-                            <td class="p-3 font-semibold text-white">{{ p.name }}</td>
-                            <td class="p-3 text-slate-300">{{ p.category }}</td>
-                            <td class="p-3 text-slate-300">${{ "%.2f"|format(p.price) }}</td>
-                            <td class="p-3 font-bold text-amber-400">⚠️ {{ p.stock }}</td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="4" class="p-6 text-center text-slate-500 italic">មិនមានទំនិញជិតអស់ក្នុងស្តុកទេ។ (ល្អណាស់!)</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
         </div>
 
@@ -331,60 +284,6 @@ INDEX_TEMPLATE = """
         </div>
 
     </div>
-
-    <!-- SCRIPT FOR CHARTS -->
-    <script>
-        const salesData = {{ sales_chart_data | safe }};
-        const movementData = {{ movement_chart_data | safe }};
-
-        // Sales Chart
-        new Chart(document.getElementById('salesChart'), {
-            type: 'line',
-            data: {
-                labels: salesData.labels,
-                datasets: [{
-                    label: 'Total Sales ($)',
-                    data: salesData.values,
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' } },
-                    y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' } }
-                }
-            }
-        });
-
-        // Movement Chart
-        new Chart(document.getElementById('movementChart'), {
-            type: 'bar',
-            data: {
-                labels: ['IN (ទិញចូល)', 'OUT (លក់ចេញ)'],
-                datasets: [{
-                    data: [movementData.in, movementData.out],
-                    backgroundColor: ['#10b981', '#ef4444'],
-                    borderRadius: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } },
-                    y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' } }
-                }
-            }
-        });
-    </script>
 </body>
 </html>
 """
@@ -465,28 +364,13 @@ def index():
     total_stock = sum(int(p.get("stock", 0) or 0) for p in products)
     inventory_value = sum(float(p.get("price", 0) or 0) * int(p.get("stock", 0) or 0) for p in products)
     
-    # Low stock products (e.g. stock < 10)
-    low_stock_products = [p for p in products if int(p.get("stock", 0) or 0) < 10]
-
-    # Prepare Chart Data
-    sales_labels = [s.get("created_at", "")[:10] for s in sales_list[-7:]]
-    sales_values = [float(s.get("total_price", 0) or 0) for s in sales_list[-7:]]
-    sales_chart_data = {"labels": sales_labels if sales_labels else ["គ្មានទិន្នន័យ"], "values": sales_values if sales_values else [0]}
-
-    in_count = sum(1 for m in movements if m.get("type") == "IN")
-    out_count = sum(1 for m in movements if m.get("type") == "OUT")
-    movement_chart_data = {"in": in_count, "out": out_count}
-    
     return render_template_string(INDEX_TEMPLATE, 
                            products=products, 
                            sales_list=sales_list,
                            movements=movements,
-                           low_stock_products=low_stock_products,
                            total_items=total_items, 
                            total_stock=total_stock, 
                            inventory_value=inventory_value,
-                           sales_chart_data=json.dumps(sales_chart_data),
-                           movement_chart_data=json.dumps(movement_chart_data),
                            current_user=session.get('user'),
                            store_id=current_store_id)
 
