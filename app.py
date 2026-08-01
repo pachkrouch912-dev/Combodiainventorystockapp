@@ -38,7 +38,7 @@ AUTH_TEMPLATE = """
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-gray-100 min-h-screen flex items-center justify-center font-sans p-4">
-    <div class="max-w-md w-full bg-slate-900/90 backdrop-blur-xl border border-slate-700/60 rounded-2xl p-8 shadow-2xl" x-data="{ mode: '{{ mode|default('login') }}' }">
+    <div class="max-w-md w-full bg-slate-900/95 backdrop-blur-xl border border-slate-700/60 rounded-2xl p-8 shadow-2xl" x-data="{ mode: '{{ mode|default('login') }}' }">
         <div class="text-center mb-6">
             <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-600/25 border border-emerald-500/30 text-emerald-400 text-2xl mb-3 shadow-inner">⚡</div>
             <h1 class="text-2xl font-bold tracking-tight text-white">SaaS Inventory Hub</h1>
@@ -51,13 +51,11 @@ AUTH_TEMPLATE = """
         </div>
         {% endif %}
 
-        <!-- Tab Switcher Header -->
         <div class="grid grid-cols-2 gap-1 bg-slate-950 p-1 rounded-xl mb-6 border border-slate-800">
             <button @click="mode = 'login'" :class="mode === 'login' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'" class="py-2 text-xs font-semibold rounded-lg transition">ចូលគណនី (Login)</button>
             <button @click="mode = 'signup'" :class="mode === 'signup' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'" class="py-2 text-xs font-semibold rounded-lg transition">ចុះឈ្មោះហាង (Sign Up)</button>
         </div>
 
-        <!-- LOGIN FORM -->
         <form action="/login" method="POST" class="space-y-4" x-show="mode === 'login'">
             <div>
                 <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Username</label>
@@ -70,7 +68,6 @@ AUTH_TEMPLATE = """
             <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl shadow-lg transition text-sm">Login to Store</button>
         </form>
 
-        <!-- SIGNUP FORM -->
         <form action="/signup" method="POST" class="space-y-4" x-show="mode === 'signup'" style="display: none;">
             <div>
                 <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Store Name (ឈ្មោះហាង)</label>
@@ -271,4 +268,3 @@ def add_product():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-
