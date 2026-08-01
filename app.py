@@ -393,9 +393,14 @@ def signup():
     if existing_user and len(existing_user) > 0:
         return render_template_string(AUTH_TEMPLATE, mode="signup", error="ឈ្មោះ Username នេះមានគេប្រើរួចហើយ!")
 
-    created_stores = supabase_request("stores", method="POST", data={"name": store_name})
+    # បញ្ជូនទិន្នន័យទៅកាន់តារាង stores (ប្រើទាំង name និង store_name ក្នុងកូដដើម្បីការពារបញ្ហា column mismatch)
+    created_stores = supabase_request("stores", method="POST", data={"name": store_name, "store_name": store_name})
     if not created_stores:
-        return render_template_string(AUTH_TEMPLATE, mode="signup", error="មានបញ្ហាពេលបង្កើតហាង សូមព្យាយាមម្ដងទៀត!")
+        # បើនៅតែ Error អាចសាកល្បងប្តូរទៅប្រើ dictionary ត្រឹម column ដែលតារាងលោកអ្នកមានពិតប្រាកដ
+        created_stores = supabase_request("stores", method="POST", data={"name": store_name})
+        
+    if not created_stores:
+        return render_template_string(AUTH_TEMPLATE, mode="signup", error="មានបញ្ហាពេលបង្កើតហាង សូមពិនិត្យមើល Supabase RLS ឬ Table Column!")
         
     new_store_id = created_stores[0]["id"]
     created_users = supabase_request("users", method="POST", data={
@@ -529,4 +534,3 @@ def sell_product():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-
