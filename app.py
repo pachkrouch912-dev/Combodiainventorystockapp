@@ -627,7 +627,7 @@ def add_expense():
     store_id = session.get('store_id')
     title = request.form.get("title")
     amount = float(request.form.get("amount") or 0.0)
-    category = request.form.get("category") or "General Expense")
+    category = request.form.get("category") or "General Expense"
     
     supabase_request("expenses", method="POST", data={
         "store_id": store_id,
