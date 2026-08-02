@@ -1,154 +1,32 @@
 import os
 from flask import Flask, render_template_string, request, redirect, url_for, session
-from supabase import create_client, Client
+import urllib.request
+import json
+from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "bizstockkh_super_secret_key_2026")
+app.secret_key = "cambodia-inventory-secure-secret-key"
 
-# Supabase Configuration
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "YOUR_SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "YOUR_SUPABASE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+SUPABASE_URL = "https://dwqyrlrylworstasglsi.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cXlybHJ5bHdvcnN0YXNnbHNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4FS5OTzc3MCwiZXhwIjoyMTAxMDgxNzcwfQ.gR5rqaHs44_4pH-ufkdRRhsx1rt2jEAnP1d905Go5Rc"
 
-# ==================== HTML / FRONTEND TEMPLATE ====================
-INDEX_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="km">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BizStockKH</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased" 
-      x-data="{ 
-          tab: 'dashboard', 
-          lang: 'km',
-          t: {
-              km: {
-                  title: 'BizStockKH',
-                  storeId: 'លេខសម្គាល់ហាង: 1',
-                  logout: 'ចាកចេញ',
-                  home: 'ទំព័រដើម',
-                  pos: 'កន្រ្តកលក់ (POS)',
-                  addProduct: 'បន្ថែមទំនិញ',
-                  expenses: 'ចំណាយ',
-                  stock: 'ស្តុកទំនិញ',
-                  salesHistory: 'ប្រវត្តិលក់',
-                  movement: 'ចលនាទំនិញ',
-                  totalSales: 'ទឹកប្រាក់លក់សរុប',
-                  totalExpenses: 'ចំណាយសរុប',
-                  netProfit: 'ចំណេញសុទ្ធ'
-              },
-              en: {
-                  title: 'BizStockKH',
-                  storeId: 'Store ID: 1',
-                  logout: 'Logout',
-                  home: 'Home',
-                  pos: 'POS Cart',
-                  addProduct: 'Add Product',
-                  expenses: 'Expenses',
-                  stock: 'Stock',
-                  salesHistory: 'Sales History',
-                  movement: 'Movement',
-                  totalSales: 'TOTAL SALES',
-                  totalExpenses: 'TOTAL EXPENSES',
-                  netProfit: 'NET PROFIT'
-              }
-          }
-      }">
-
-<div class="max-w-7xl mx-auto p-3 sm:p-6 lg:p-8">
-
-    <!-- HEADER -->
-    <header class="bg-gradient-to-r from-emerald-900 via-slate-900 to-slate-900 p-4 sm:p-6 rounded-2xl shadow-xl border border-emerald-500/20 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="flex items-center space-x-3">
-            <div class="w-12 h-12 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-2xl shadow-inner">
-                ⚡
-            </div>
-            <div>
-                <h1 class="text-lg sm:text-xl font-bold text-white tracking-wide" x-text="t[lang].title">BizStockKH</h1>
-                <p class="text-xs text-emerald-400 font-medium mt-0.5" x-text="t[lang].storeId">Store ID: 1</p>
-            </div>
-        </div>
-
-        <!-- LANGUAGE SWITCHER & USER INFO -->
-        <div class="flex items-center space-x-3">
-            <!-- Language Toggle Button -->
-            <button @click="lang = lang === 'km' ? 'en' : 'km'" class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-semibold border border-slate-700 hover:bg-slate-700 transition">
-                🌐 <span x-text="lang === 'km' ? 'English' : 'ភាសាខ្មែរ'"></span>
-            </button>
-
-            <div class="flex items-center space-x-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
-                <span>👤</span>
-                <span class="font-semibold text-slate-300">{{ current_user }}</span>
-            </div>
-            <a href="/logout" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-500/20 transition" x-text="t[lang].logout">ចាកចេញ</a>
-        </div>
-    </header>
-
-    <!-- NAVIGATION TABS -->
-    <div class="grid grid-cols-3 sm:grid-cols-7 gap-2 mb-6 bg-slate-900/50 p-2 rounded-2xl border border-slate-800/80">
-        <button @click="tab = 'dashboard'" :class="tab === 'dashboard' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'" class="flex flex-col items-center justify-center py-2.5 px-2 rounded-xl text-xs font-medium transition">
-            <span class="text-base mb-1">🏠</span>
-            <span x-text="t[lang].home">ទំព័រដើម</span>
-        </button>
-        <button @click="tab = 'pos'" :class="tab === 'pos' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'" class="flex flex-col items-center justify-center py-2.5 px-2 rounded-xl text-xs font-medium transition">
-            <span class="text-base mb-1">🛒</span>
-            <span x-text="t[lang].pos">POS Cart</span>
-        </button>
-        <button @click="tab = 'add_product'" :class="tab === 'add_product' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'" class="flex flex-col items-center justify-center py-2.5 px-2 rounded-xl text-xs font-medium transition">
-            <span class="text-base mb-1">➕</span>
-            <span x-text="t[lang].addProduct">បន្ថែមទំនិញ</span>
-        </button>
-        <button @click="tab = 'expenses'" :class="tab === 'expenses' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'" class="flex flex-col items-center justify-center py-2.5 px-2 rounded-xl text-xs font-medium transition">
-            <span class="text-base mb-1">💸</span>
-            <span x-text="t[lang].expenses">ចំណាយ</span>
-        </button>
-        <button @click="tab = 'stock'" :class="tab === 'stock' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'" class="flex flex-col items-center justify-center py-2.5 px-2 rounded-xl text-xs font-medium transition">
-            <span class="text-base mb-1">📦</span>
-            <span x-text="t[lang].stock">ស្តុកទំនិញ</span>
-        </button>
-        <button @click="tab = 'history'" :class="tab === 'history' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'" class="flex flex-col items-center justify-center py-2.5 px-2 rounded-xl text-xs font-medium transition">
-            <span class="text-base mb-1">📊</span>
-            <span x-text="t[lang].salesHistory">ប្រវត្តិលក់</span>
-        </button>
-        <button @click="tab = 'movement'" :class="tab === 'movement' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'" class="flex flex-col items-center justify-center py-2.5 px-2 rounded-xl text-xs font-medium transition">
-            <span class="text-base mb-1">📋</span>
-            <span x-text="t[lang].movement">ចលនាទំនិញ</span>
-        </button>
-    </div>
-
-    <!-- TAB CONTENT: DASHBOARD -->
-    <div x-show="tab === 'dashboard'" class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider" x-text="t[lang].totalSales">TOTAL SALES</p>
-                <p class="text-2xl font-bold text-emerald-400 mt-2">${{ "%.2f"|format(total_sales) }}</p>
-            </div>
-            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider" x-text="t[lang].totalExpenses">TOTAL EXPENSES</p>
-                <p class="text-2xl font-bold text-rose-400 mt-2">${{ "%.2f"|format(total_expenses) }}</p>
-            </div>
-            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider" x-text="t[lang].netProfit">NET PROFIT</p>
-                <p class="text-2xl font-bold text-cyan-400 mt-2">${{ "%.2f"|format(net_profit) }}</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- OTHER TABS PLACEHOLDER (สามารถเพิ่มเนื้อหาหน้าอื่น ๆ ต่อตรงนี้ได้) -->
-    <div x-show="tab !== 'dashboard'" class="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center text-slate-400">
-        <p class="text-lg">មុខងារនេះកំពុងដំណើរការ... (Content for <span x-text="tab"></span>)</p>
-    </div>
-
-</div>
-
-</body>
-</html>
-"""
+def supabase_request(endpoint, method="GET", data=None):
+    url = f"{SUPABASE_URL}/rest/v1/{endpoint}"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation"
+    }
+    req_data = json.dumps(data).encode("utf-8") if data else None
+    req = urllib.request.Request(url, data=req_data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req) as response:
+            res_body = response.read().decode("utf-8")
+            return json.loads(res_body) if res_body else []
+    except Exception as e:
+        print(f"Supabase Error ({endpoint}): {e}")
+        return []
 
 AUTH_TEMPLATE = """
 <!DOCTYPE html>
@@ -156,78 +34,746 @@ AUTH_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BizStockKH - Login</title>
+    <title>BizStockKH - Authentication</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-md w-full bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-2xl">
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-gray-100 min-h-screen flex items-center justify-center font-sans p-4">
+    <div class="max-w-md w-full bg-slate-900/95 backdrop-blur-xl border border-slate-700/60 rounded-2xl p-8 shadow-2xl" x-data="{ mode: '{{ mode|default('login') }}' }">
         <div class="text-center mb-6">
-            <div class="text-4xl mb-2">📦</div>
-            <h1 class="text-xl font-bold text-white">BizStockKH</h1>
-            <p class="text-xs text-slate-400 mt-1">សូមចូលប្រើប្រាស់ប្រព័ន្ធរបស់អ្នក</p>
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 text-3xl mb-3 shadow-inner">📦</div>
+            <h1 class="text-2xl font-bold tracking-tight text-white">BizStockKH</h1>
+            <p class="text-xs text-slate-400 mt-1" x-text="mode === 'login' ? 'សូមបញ្ចូលគណនីហាងរបស់អ្នកដើម្បីចូលកាន់ប្រព័ន្ធ' : 'បង្កើតហាង និងគណនី Admin របស់អ្នកថ្មី'"></p>
         </div>
+
         {% if error %}
-        <div class="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-xl text-xs mb-4 text-center">
-            {{ error }}
+        <div class="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3.5 rounded-xl mb-4 text-center">
+            ⚠️ {{ error }}
         </div>
         {% endif %}
-        <form method="POST" class="space-y-4">
+
+        <div class="grid grid-cols-2 gap-1 bg-slate-950 p-1 rounded-xl mb-6 border border-slate-800">
+            <button @click="mode = 'login'" :class="mode === 'login' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'" class="py-2.5 text-xs font-semibold rounded-lg transition">ចូលគណនី (Login)</button>
+            <button @click="mode = 'signup'" :class="mode === 'signup' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'" class="py-2.5 text-xs font-semibold rounded-lg transition">ចុះឈ្មោះហាង (Sign Up)</button>
+        </div>
+
+        <form action="/login" method="POST" class="space-y-4" x-show="mode === 'login'">
             <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">ឈ្មោះអ្នកប្រើប្រាស់ (Username)</label>
-                <input type="text" name="username" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Username</label>
+                <input type="text" name="username" required class="w-full bg-slate-950/60 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500 transition" placeholder="ឈ្មោះអ្នកប្រើប្រាស់">
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">ពាក្យសម្ងាត់ (Password)</label>
-                <input type="password" name="password" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Password</label>
+                <input type="password" name="password" required class="w-full bg-slate-950/60 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500 transition" placeholder="••••••••">
             </div>
-            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-sm transition shadow-lg shadow-emerald-900/30">
-                ចូលប្រព័ន្ធ (Login)
-            </button>
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl shadow-lg transition text-sm">Login to Store</button>
+        </form>
+
+        <form action="/signup" method="POST" class="space-y-4" x-show="mode === 'signup'" style="display: none;">
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Store Name (ឈ្មោះហាង)</label>
+                <input type="text" name="store_name" required class="w-full bg-slate-950/60 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500 transition" placeholder="ឧ. ហាងលក់ទំនិញ ABC">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Your Full Name (ឈ្មោះម្ចាស់ហាង)</label>
+                <input type="text" name="admin_fullname" required class="w-full bg-slate-950/60 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500 transition" placeholder="ឧ. សុខា">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Username (ឈ្មោះចូលប្រើ)</label>
+                <input type="text" name="username" required class="w-full bg-slate-950/60 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500 transition" placeholder="username">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Password (ពាក្យសម្ងាត់)</label>
+                <input type="password" name="password" required class="w-full bg-slate-950/60 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500 transition" placeholder="••••••••">
+            </div>
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl shadow-lg transition text-sm">Create Store & Account</button>
         </form>
     </div>
 </body>
 </html>
 """
 
-# ==================== FLASK ROUTES ====================
+INDEX_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BizStockKH - Store POS & Accounting Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased"
+      x-data="{ 
+          tab: 'dashboard',
+          lang: 'km',
+          t: {
+              km: {
+                  title: 'BizStockKH',
+                  storeId: 'លេខសម្គាល់ហាង: {{ store_id }}',
+                  home: 'ទំព័រដើម',
+                  pos: 'កន្រ្តកលក់',
+                  add: 'បន្ថែមទំនិញ',
+                  expenses: 'ចំណាយ',
+                  stock: 'ស្តុកទំនិញ',
+                  sales: 'ប្រវត្តិលក់',
+                  logs: 'ចលនាទំនិញ',
+                  totalSales: 'ទឹកប្រាក់លក់សរុប',
+                  totalExpenses: 'ចំណាយសរុប',
+                  netProfit: 'ចំណេញសុទ្ធ',
+                  totalStock: 'ចំនួនស្តុកសរុប',
+                  inventoryValue: 'តម្លៃទ្រព្យសកម្មស្តុក',
+                  salesOverview: 'ក្រាហ្វិកការលក់',
+                  movementSummary: 'ចលនាស្តុក ចូល/ចេញ',
+                  lowStockAlert: 'ទំនិញជិតអស់ក្នុងស្តុក (< 10)',
+                  noLowStock: 'មិនមានទំនិញជិតអស់ក្នុងស្តុកទេ។',
+                  productName: 'ឈ្មោះទំនិញ',
+                  category: 'ប្រភេទ',
+                  price: 'តម្លៃ',
+                  currentStock: 'ស្តុកបច្ចុប្បន្ន',
+                  selectProducts: 'ជ្រើសរើសទំនិញសម្រាប់លក់',
+                  noProducts: 'មិនមានទំនិញសម្រាប់លក់ទេ។',
+                  cartSummary: 'កន្រ្តកទំនិញ',
+                  emptyCart: 'កន្រ្តកទំនិញទទេរ។',
+                  totalAmount: 'សរុបទឹកប្រាក់:',
+                  checkout: 'គិតលុយ និងកាត់ស្តុក',
+                  addNewProduct: 'បន្ថែមទំនិញថ្មី',
+                  initialStock: 'ស្តុកដំបូង',
+                  saveProduct: 'រក្សាទុកទំនិញ',
+                  addExpenseTitle: 'កត់ត្រាចំណាយ',
+                  expenseTitleInput: 'ចំណងជើងចំណាយ',
+                  expenseAmount: 'ទឹកប្រាក់ ($)',
+                  expenseCategory: 'ប្រភេទ',
+                  saveExpense: 'រក្សាទុកចំណាយ',
+                  expenseHistory: 'ប្រវត្តិចំណាយ',
+                  noExpenses: 'មិនទាន់មានប្រវត្តិចំណាយទេ។',
+                  salesHistoryTitle: 'ប្រវត្តិការលក់',
+                  noSales: 'មិនទាន់មានប្រវត្តិការលក់។',
+                  stockMovementTitle: 'ចលនាស្តុក',
+                  noMovements: 'មិនទាន់មានទិន្នន័យ Stock Movement.',
+                  logout: 'ចាកចេញ'
+              },
+              en: {
+                  title: 'BizStockKH',
+                  storeId: 'Store ID: {{ store_id }}',
+                  home: 'Home',
+                  pos: 'POS Cart',
+                  add: 'Add Product',
+                  expenses: 'Expenses',
+                  stock: 'Stock',
+                  sales: 'Sales History',
+                  logs: 'Movement',
+                  totalSales: 'Total Sales',
+                  totalExpenses: 'Total Expenses',
+                  netProfit: 'Net Profit',
+                  totalStock: 'Total Stock Qty',
+                  inventoryValue: 'Inventory Asset Value',
+                  salesOverview: 'Sales Overview',
+                  movementSummary: 'Movement Summary',
+                  lowStockAlert: 'Low Stock Alert (< 10)',
+                  noLowStock: 'No low stock products.',
+                  productName: 'Product Name',
+                  category: 'Category',
+                  price: 'Price',
+                  currentStock: 'Current Stock',
+                  selectProducts: 'Select Products for Sale',
+                  noProducts: 'No products available for sale.',
+                  cartSummary: 'Cart Summary',
+                  emptyCart: 'Cart is empty.',
+                  totalAmount: 'Total Amount:',
+                  checkout: 'Checkout & Update Stock',
+                  addNewProduct: 'Add New Product',
+                  initialStock: 'Initial Stock',
+                  saveProduct: 'Save Product',
+                  addExpenseTitle: 'Add Expense',
+                  expenseTitleInput: 'Expense Title',
+                  expenseAmount: 'Amount ($)',
+                  expenseCategory: 'Category',
+                  saveExpense: 'Save Expense',
+                  expenseHistory: 'Expense History',
+                  noExpenses: 'No expenses recorded.',
+                  salesHistoryTitle: 'Sales History',
+                  noSales: 'No sales history.',
+                  stockMovementTitle: 'Stock Movement',
+                  noMovements: 'No stock movement data.',
+                  logout: 'Logout'
+              }
+          }
+      }">
+    <div class="max-w-7xl mx-auto p-3 sm:p-6 lg:p-8">
+        
+        <!-- HEADER -->
+        <header class="bg-gradient-to-r from-emerald-900 via-slate-900 to-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 shadow-xl">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl shadow-inner">📦</div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight" x-text="t[lang].title">BizStockKH</h1>
+                    <p class="text-xs text-emerald-400 font-medium mt-0.5" x-text="t[lang].storeId"></p>
+                </div>
+            </div>
+            <div class="flex items-center justify-between w-full sm:w-auto space-x-3 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800">
+                <!-- LANGUAGE SWITCHER BUTTON -->
+                <button @click="lang = lang === 'km' ? 'en' : 'km'" class="px-3 py-2 rounded-xl bg-slate-800 text-xs font-semibold border border-slate-700 hover:bg-slate-700 transition flex items-center space-x-1">
+                    <span>🌐</span> <span x-text="lang === 'km' ? 'English' : 'ភាសាខ្មែរ'"></span>
+                </button>
+                <span class="text-xs bg-slate-800/80 text-slate-300 border border-slate-700 px-3.5 py-2 rounded-xl flex items-center space-x-1.5 shadow-sm">
+                    <span>👤</span> <span class="font-semibold">{{ current_user }}</span>
+                </span>
+                <a href="/logout" class="bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 text-xs font-semibold px-4 py-2 rounded-xl transition shadow" x-text="t[lang].logout">Logout</a>
+            </div>
+        </header>
 
-@app.route("/", methods=["GET", "POST"])
+        <!-- NAVIGATION TABS -->
+        <div class="grid grid-cols-3 sm:grid-cols-7 gap-2 mb-6 bg-slate-900/85 backdrop-blur-md p-2 rounded-2xl border border-slate-800 shadow-lg">
+            <button @click="tab = 'dashboard'" :class="tab === 'dashboard' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800'" class="py-2.5 px-2 rounded-xl text-xs font-semibold text-center transition flex flex-col sm:flex-row items-center justify-center gap-1"><span>🏠</span><span x-text="t[lang].home">Home</span></button>
+            <button @click="tab = 'pos'" :class="tab === 'pos' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800'" class="py-2.5 px-2 rounded-xl text-xs font-semibold text-center transition flex flex-col sm:flex-row items-center justify-center gap-1"><span>🛒</span><span x-text="t[lang].pos">POS Cart</span></button>
+            <button @click="tab = 'add'" :class="tab === 'add' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800'" class="py-2.5 px-2 rounded-xl text-xs font-semibold text-center transition flex flex-col sm:flex-row items-center justify-center gap-1"><span>➕</span><span x-text="t[lang].add">Add Product</span></button>
+            <button @click="tab = 'expenses'" :class="tab === 'expenses' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800'" class="py-2.5 px-2 rounded-xl text-xs font-semibold text-center transition flex flex-col sm:flex-row items-center justify-center gap-1"><span>💸</span><span x-text="t[lang].expenses">Expenses</span></button>
+            <button @click="tab = 'stock'" :class="tab === 'stock' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800'" class="py-2.5 px-2 rounded-xl text-xs font-semibold text-center transition flex flex-col sm:flex-row items-center justify-center gap-1"><span>📦</span><span x-text="t[lang].stock">Stock</span></button>
+            <button @click="tab = 'sales'" :class="tab === 'sales' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800'" class="py-2.5 px-2 rounded-xl text-xs font-semibold text-center transition flex flex-col sm:flex-row items-center justify-center gap-1"><span>📊</span><span x-text="t[lang].sales">Sales History</span></button>
+            <button @click="tab = 'logs'" :class="tab === 'logs' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800'" class="py-2.5 px-2 rounded-xl text-xs font-semibold text-center transition flex flex-col sm:flex-row items-center justify-center gap-1"><span>📋</span><span x-text="t[lang].logs">Movement</span></button>
+        </div>
+
+        <!-- DASHBOARD HOME TAB -->
+        <div x-show="tab === 'dashboard'" class="space-y-6">
+            <!-- CARDS -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider" x-text="t[lang].totalSales">Total Sales</p>
+                    <p class="text-2xl font-bold text-emerald-400 mt-2">${{ "%.2f"|format(total_sales_amount) }}</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider" x-text="t[lang].totalExpenses">Total Expenses</p>
+                    <p class="text-2xl font-bold text-red-400 mt-2">${{ "%.2f"|format(total_expenses_amount) }}</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider" x-text="t[lang].netProfit">Net Profit</p>
+                    <p class="text-2xl font-bold text-cyan-400 mt-2">${{ "%.2f"|format(net_profit) }}</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider" x-text="t[lang].totalStock">Total Stock Qty</p>
+                    <p class="text-2xl font-bold text-white mt-2">{{ total_stock }}</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider" x-text="t[lang].inventoryValue">Inventory Asset Value</p>
+                    <p class="text-2xl font-bold text-emerald-400 mt-2">${{ "%.2f"|format(inventory_value) }}</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+                    <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>📊</span> <span x-text="t[lang].salesOverview">Sales Overview</span></h3>
+                    <div class="relative h-64"><canvas id="salesChart"></canvas></div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+                    <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>📈</span> <span x-text="t[lang].movementSummary">Movement Summary</span></h3>
+                    <div class="relative h-64"><canvas id="movementChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl overflow-x-auto">
+                <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2 text-amber-400"><span>⚠️</span> <span x-text="t[lang].lowStockAlert">Low Stock Alert</span></h3>
+                <table class="w-full text-left border-collapse min-w-[500px]">
+                    <thead>
+                        <tr class="border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            <th class="p-3" x-text="t[lang].productName">Product Name</th>
+                            <th class="p-3" x-text="t[lang].category">Category</th>
+                            <th class="p-3" x-text="t[lang].price">Price</th>
+                            <th class="p-3" x-text="t[lang].currentStock">Current Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800 text-sm">
+                        {% for p in low_stock_products %}
+                        <tr class="hover:bg-slate-800/50 transition">
+                            <td class="p-3 font-semibold text-white">{{ p.name }}</td>
+                            <td class="p-3 text-slate-300">{{ p.category }}</td>
+                            <td class="p-3 text-slate-300">${{ "%.2f"|format(p.price) }}</td>
+                            <td class="p-3 font-bold text-amber-400">⚠️ {{ p.stock }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="p-6 text-center text-slate-500 italic" x-text="t[lang].noLowStock">មិនមានទំនិញជិតអស់ក្នុងស្តុកទេ។</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- POS CART MULTI-ITEM TAB -->
+        <div x-show="tab === 'pos'" class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display: none;" x-data="{ 
+            cart: [],
+            addToCart(id, name, price, stock) {
+                let found = this.cart.find(item => item.id === id);
+                if (found) {
+                    if (found.qty < stock) { found.qty++; }
+                    else { alert('ស្តុកក្នុងឃ្លាំងមិនគ្រប់គ្រាន់ទេ!'); }
+                } else {
+                    if (stock > 0) { this.cart.push({id: id, name: name, price: price, qty: 1, stock: stock}); }
+                    else { alert('ទំនិញនេះអស់ពីស្តុកហើយ!'); }
+                }
+            },
+            removeFromCart(index) { this.cart.splice(index, 1); },
+            get totalAmount() { return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0); }
+        }">
+            <!-- PRODUCTS LIST FOR POS -->
+            <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>🛍️</span> <span x-text="t[lang].selectProducts">Products</span></h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-2">
+                    {% for p in products %}
+                    <div @click="addToCart('{{ p.id }}', '{{ p.name }}', {{ p.price }}, {{ p.stock }})" class="bg-slate-950 border border-slate-800 hover:border-emerald-500/50 p-4 rounded-xl cursor-pointer transition shadow flex justify-between items-center group">
+                        <div>
+                            <h4 class="font-semibold text-white text-sm group-hover:text-emerald-400 transition">{{ p.name }}</h4>
+                            <p class="text-xs text-slate-400 mt-0.5"><span x-text="lang === 'km' ? 'ស្តុកសល់: ' : 'Stock: '"></span><span class="font-bold text-emerald-400">{{ p.stock }}</span></p>
+                        </div>
+                        <span class="text-emerald-400 font-bold text-sm bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">${{ "%.2f"|format(p.price) }}</span>
+                    </div>
+                    {% else %}
+                    <p class="text-slate-500 italic col-span-2 text-center py-6" x-text="t[lang].noProducts">មិនមានទំនិញសម្រាប់លក់ទេ។</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- SHOPPING CART CHECKOUT -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+                <div>
+                    <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>🛒</span> <span x-text="t[lang].cartSummary">Cart Summary</span></h2>
+                    <div class="space-y-3 max-h-[300px] overflow-y-auto pr-1 mb-4">
+                        <template x-for="(item, index) in cart" :key="index">
+                            <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl flex justify-between items-center text-xs">
+                                <div>
+                                    <h5 class="font-semibold text-white" x-text="item.name"></h5>
+                                    <p class="text-slate-400 mt-0.5"><span x-text="item.qty"></span> x $<span x-text="item.price.toFixed(2)"></span></p>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="font-bold text-emerald-400" x-text="'$' + (item.price * item.qty).toFixed(2)"></span>
+                                    <button @click="removeFromCart(index)" class="text-red-400 hover:text-red-300 font-bold px-1.5 py-0.5 bg-red-500/10 rounded border border-red-500/20">✕</button>
+                                </div>
+                            </div>
+                        </template>
+                        <p x-show="cart.length === 0" class="text-slate-500 italic text-center py-8 text-xs" x-text="t[lang].emptyCart">កន្រ្តកទំនិញទទេរ។</p>
+                    </div>
+                </div>
+
+                <form action="/sell_cart" method="POST" class="border-t border-slate-800 pt-4 mt-auto">
+                    <input type="hidden" name="cart_data" :value="JSON.stringify(cart)">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider" x-text="t[lang].totalAmount">Total:</span>
+                        <span class="text-xl font-bold text-emerald-400" x-text="'$' + totalAmount.toFixed(2)"></span>
+                    </div>
+                    <button type="submit" :disabled="cart.length === 0" :class="cart.length === 0 ? 'opacity-50 cursor-not-allowed bg-slate-800 text-slate-500' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg'" class="w-full font-semibold py-3 rounded-xl transition text-sm" x-text="t[lang].checkout">Checkout</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ADD PRODUCT TAB -->
+        <div x-show="tab === 'add'" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl max-w-xl mx-auto" style="display: none;">
+            <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>➕</span> <span x-text="t[lang].addNewProduct">Add New Product</span></h2>
+            <form action="/add" method="POST" class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1" x-text="t[lang].productName">Product Name</label>
+                        <input type="text" name="name" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1" x-text="t[lang].price">Price ($)</label>
+                        <input type="number" step="0.01" name="price" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1" x-text="t[lang].category">Category</label>
+                        <input type="text" name="category" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500" value="General">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1" x-text="t[lang].initialStock">Initial Stock</label>
+                        <input type="number" name="stock" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl shadow-lg transition text-sm" x-text="t[lang].saveProduct">Save Product</button>
+            </form>
+        </div>
+
+        <!-- EXPENSES MANAGEMENT TAB -->
+        <div x-show="tab === 'expenses'" class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display: none;">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>💸</span> <span x-text="t[lang].addExpenseTitle">Add Expense</span></h2>
+                <form action="/add_expense" method="POST" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1" x-text="t[lang].expenseTitleInput">Title</label>
+                        <input type="text" name="title" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500" placeholder="ឧ. ថ្លៃឈ្នួលហាង, ថ្លៃទិញសាំង">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1" x-text="t[lang].expenseAmount">Amount ($)</label>
+                        <input type="number" step="0.01" name="amount" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1" x-text="t[lang].expenseCategory">Category</label>
+                        <input type="text" name="category" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500" value="General Expense">
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl shadow-lg transition text-sm" x-text="t[lang].saveExpense">Save Expense</button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl overflow-x-auto">
+                <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>📋</span> <span x-text="t[lang].expenseHistory">Expense History</span></h2>
+                <table class="w-full text-left border-collapse min-w-[500px]">
+                    <thead>
+                        <tr class="border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            <th class="p-3" x-text="t[lang].expenseTitleInput">Title</th>
+                            <th class="p-3" x-text="t[lang].category">Category</th>
+                            <th class="p-3" x-text="t[lang].expenseAmount">Amount</th>
+                            <th class="p-3">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800 text-sm">
+                        {% for e in expenses_list %}
+                        <tr class="hover:bg-slate-800/50 transition">
+                            <td class="p-3 font-semibold text-white">{{ e.title }}</td>
+                            <td class="p-3 text-slate-300">{{ e.category }}</td>
+                            <td class="p-3 font-bold text-red-400">-${{ "%.2f"|format(e.amount) }}</td>
+                            <td class="p-3 text-xs text-slate-500">{{ e.created_at }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="p-8 text-center text-slate-500 italic" x-text="t[lang].noExpenses">មិនទាន់មានប្រវត្តិចំណាយទេ។</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- STOCK MANAGEMENT TAB -->
+        <div x-show="tab === 'stock'" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl overflow-x-auto" style="display: none;">
+            <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>📦</span> <span x-text="t[lang].stock">Stock Management</span></h2>
+            <table class="w-full text-left border-collapse min-w-[500px]">
+                <thead>
+                    <tr class="border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                        <th class="p-3" x-text="t[lang].productName">Name</th>
+                        <th class="p-3" x-text="t[lang].category">Category</th>
+                        <th class="p-3" x-text="t[lang].price">Price</th>
+                        <th class="p-3" x-text="t[lang].currentStock">Stock</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 text-sm">
+                    {% for p in products %}
+                    <tr class="hover:bg-slate-800/50 transition">
+                        <td class="p-3 font-semibold text-white">{{ p.name }}</td>
+                        <td class="p-3 text-slate-300">{{ p.category }}</td>
+                        <td class="p-3 text-slate-300">${{ "%.2f"|format(p.price) }}</td>
+                        <td class="p-3 font-bold text-emerald-400">{{ p.stock }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="p-8 text-center text-slate-500 italic">មិនមានទំនិញក្នុងស្តុកទេ។</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- SALES HISTORY TAB -->
+        <div x-show="tab === 'sales'" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl overflow-x-auto" style="display: none;">
+            <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>📊</span> <span x-text="t[lang].salesHistoryTitle">Sales History</span></h2>
+            <table class="w-full text-left border-collapse min-w-[500px]">
+                <thead>
+                    <tr class="border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                        <th class="p-3" x-text="t[lang].productName">Product</th>
+                        <th class="p-3">Qty</th>
+                        <th class="p-3" x-text="t[lang].expenseAmount">Total ($)</th>
+                        <th class="p-3">Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 text-sm">
+                    {% for s in sales_list %}
+                    <tr class="hover:bg-slate-800/50 transition">
+                        <td class="p-3 font-semibold text-white">{{ s.product_name }}</td>
+                        <td class="p-3 text-slate-300">{{ s.quantity }}</td>
+                        <td class="p-3 text-emerald-400 font-bold">${{ "%.2f"|format(s.total_price) }}</td>
+                        <td class="p-3 text-xs text-slate-500">{{ s.created_at }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="p-8 text-center text-slate-500 italic" x-text="t[lang].noSales">មិនទាន់មានប្រវត្តិការលក់។</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- STOCK MOVEMENT TAB -->
+        <div x-show="tab === 'logs'" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl overflow-x-auto" style="display: none;">
+            <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>📋</span> <span x-text="t[lang].stockMovementTitle">Stock Movement</span></h2>
+            <table class="w-full text-left border-collapse min-w-[500px]">
+                <thead>
+                    <tr class="border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                        <th class="p-3">Type</th><th class="p-3">Details</th><th class="p-3">Qty Change</th><th class="p-3">Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 text-sm">
+                    {% for m in movements %}
+                    <tr class="hover:bg-slate-800/50 transition">
+                        <td class="p-3">
+                            <span class="px-2.5 py-1 text-xs font-semibold rounded-lg {{ 'bg-red-500/10 text-red-400 border border-red-500/30' if m.type == 'OUT' else 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' }}">{{ m.type }}</span>
+                        </td>
+                        <td class="p-3 text-slate-300">{{ m.description }}</td>
+                        <td class="p-3 font-bold {{ 'text-red-400' if m.type == 'OUT' else 'text-emerald-400' }}">{{ m.qty_change }}</td>
+                        <td class="p-3 text-xs text-slate-500">{{ m.created_at }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="p-8 text-center text-slate-500 italic" x-text="t[lang].noMovements">មិនទាន់មានទិន្នន័យ Stock Movement.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        const salesData = {{ sales_chart_data | safe }};
+        const movementData = {{ movement_chart_data | safe }};
+
+        new Chart(document.getElementById('salesChart'), {
+            type: 'line',
+            data: {
+                labels: salesData.labels,
+                datasets: [{
+                    label: 'Total Sales ($)',
+                    data: salesData.values,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' } },
+                    y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' } }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('movementChart'), {
+            type: 'bar',
+            data: {
+                labels: ['IN (ទិញចូល)', 'OUT (លក់ចេញ)'],
+                datasets: [{
+                    data: [movementData.in, movementData.out],
+                    backgroundColor: ['#10b981', '#ef4444'],
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } },
+                    y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+"""
+
+@app.route("/", methods=["GET"])
+def auth_page():
+    if 'user' in session:
+        return redirect(url_for("index"))
+    return render_template_string(AUTH_TEMPLATE, mode="login", error=None)
+
+@app.route("/login", methods=["POST"])
 def login():
-    error = None
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        # គំរូផ្ទៀងផ្ទាត់សាមញ្ញ (អាចកែសម្រួលជាមួយ Supabase Auth តាមចង់បាន)
-        if username == "admin" and password == "123456":
-            session["user"] = username
-            return redirect(url_for("index"))
-        else:
-            error = "ឈ្មោះអ្នកប្រើប្រាស់ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ!"
-    return render_template_string(AUTH_TEMPLATE, error=error)
+    username = request.form.get("username")
+    password = request.form.get("password")
+    users = supabase_request(f"users?username=eq.{username}&password=eq.{password}&select=*")
+    if users and len(users) > 0:
+        user = users[0]
+        session['user'] = user['name']
+        session['store_id'] = user['store_id']
+        session['role'] = user.get('role', 'Admin')
+        return redirect(url_for("index"))
+    return render_template_string(AUTH_TEMPLATE, mode="login", error="ឈ្មោះអ្នកប្រើប្រាស់ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ!")
 
-@app.route("/dashboard")
-def index():
-    if "user" not in session:
-        return redirect(url_for("login"))
-    
-    # តម្លៃគំរូសម្រាប់ផ្ទៀងផ្ទាត់ Dashboard (អាចទាញពី Supabase តាមកូដเดิมរបស់បង)
-    total_sales = 57.00
-    total_expenses = 0.00
-    net_profit = total_sales - total_expenses
+@app.route("/signup", methods=["POST"])
+def signup():
+    store_name = request.form.get("store_name")
+    admin_fullname = request.form.get("admin_fullname")
+    username = request.form.get("username")
+    password = request.form.get("password")
 
-    return render_template_string(
-        INDEX_TEMPLATE, 
-        current_user=session["user"],
-        total_sales=total_sales,
-        total_expenses=total_expenses,
-        net_profit=net_profit
-    )
+    existing_user = supabase_request(f"users?username=eq.{username}&select=*")
+    if existing_user and len(existing_user) > 0:
+        return render_template_string(AUTH_TEMPLATE, mode="signup", error="ឈ្មោះ Username នេះមានគេប្រើរួចហើយ!")
+
+    created_stores = supabase_request("stores", method="POST", data={"name": store_name})
+    if not created_stores:
+        return render_template_string(AUTH_TEMPLATE, mode="signup", error="មានបញ្ហាពេលបង្កើតហាង សូមព្យាយាមម្ដងទៀត!")
+        
+    new_store_id = created_stores[0]["id"]
+    created_users = supabase_request("users", method="POST", data={
+        "store_id": new_store_id,
+        "name": admin_fullname,
+        "username": username,
+        "password": password,
+        "role": "Admin"
+    })
+
+    if not created_users:
+        return render_template_string(AUTH_TEMPLATE, mode="signup", error="មានបញ្ហាពេលបង្កើតគណនី Admin!")
+
+    user = created_users[0]
+    session['user'] = user['name']
+    session['store_id'] = user['store_id']
+    session['role'] = user.get('role', 'Admin')
+    return redirect(url_for("index"))
 
 @app.route("/logout")
 def logout():
-    session.pop("user", None)
-    return redirect(url_for("login"))
+    session.clear()
+    return redirect(url_for("auth_page"))
+
+@app.route("/dashboard")
+def index():
+    if 'user' not in session:
+        return redirect(url_for("auth_page"))
+        
+    current_store_id = session.get('store_id')
+    products = supabase_request(f"products?store_id=eq.{current_store_id}&select=*")
+    if not isinstance(products, list): products = []
+    
+    sales_list = supabase_request(f"sales?store_id=eq.{current_store_id}&select=*")
+    if not isinstance(sales_list, list): sales_list = []
+
+    expenses_list = supabase_request(f"expenses?store_id=eq.{current_store_id}&select=*")
+    if not isinstance(expenses_list, list): expenses_list = []
+
+    movements = supabase_request(f"stock_movements?store_id=eq.{current_store_id}&select=*")
+    if not isinstance(movements, list): movements = []
+    
+    total_items = len(products)
+    total_stock = sum(int(p.get("stock", 0) or 0) for p in products)
+    inventory_value = sum(float(p.get("price", 0) or 0) * int(p.get("stock", 0) or 0) for p in products)
+    
+    total_sales_amount = sum(float(s.get("total_price", 0) or 0) for s in sales_list)
+    total_expenses_amount = sum(float(e.get("amount", 0) or 0) for e in expenses_list)
+    net_profit = total_sales_amount - total_expenses_amount
+
+    low_stock_products = [p for p in products if int(p.get("stock", 0) or 0) < 10]
+
+    sales_labels = [s.get("created_at", "")[:10] for s in sales_list[-7:]]
+    sales_values = [float(s.get("total_price", 0) or 0) for s in sales_list[-7:]]
+    sales_chart_data = {"labels": sales_labels if sales_labels else ["គ្មានទិន្នន័យ"], "values": sales_values if sales_values else [0]}
+
+    in_count = sum(1 for m in movements if m.get("type") == "IN")
+    out_count = sum(1 for m in movements if m.get("type") == "OUT")
+    movement_chart_data = {"in": in_count, "out": out_count}
+    
+    return render_template_string(INDEX_TEMPLATE, 
+                           products=products, 
+                           sales_list=sales_list,
+                           expenses_list=expenses_list,
+                           movements=movements,
+                           low_stock_products=low_stock_products,
+                           total_items=total_items, 
+                           total_stock=total_stock, 
+                           inventory_value=inventory_value,
+                           total_sales_amount=total_sales_amount,
+                           total_expenses_amount=total_expenses_amount,
+                           net_profit=net_profit,
+                           sales_chart_data=json.dumps(sales_chart_data),
+                           movement_chart_data=json.dumps(movement_chart_data),
+                           current_user=session.get('user'),
+                           store_id=current_store_id)
+
+@app.route("/add", methods=["POST"])
+def add_product():
+    if 'user' not in session: return redirect(url_for("auth_page"))
+    store_id = session.get('store_id')
+    name = request.form.get("name")
+    stock_qty = int(request.form.get("stock") or 0)
+    
+    prod_res = supabase_request("products", method="POST", data={
+        "store_id": store_id,
+        "name": name,
+        "category": request.form.get("category") or "General",
+        "price": float(request.form.get("price") or 0.0),
+        "stock": stock_qty
+    })
+    
+    if prod_res:
+        supabase_request("stock_movements", method="POST", data={
+            "store_id": store_id,
+            "type": "IN",
+            "description": f"Added product: {name}",
+            "qty_change": stock_qty
+        })
+        
+    return redirect(url_for("index"))
+
+@app.route("/add_expense", methods=["POST"])
+def add_expense():
+    if 'user' not in session: return redirect(url_for("auth_page"))
+    store_id = session.get('store_id')
+    title = request.form.get("title")
+    amount = float(request.form.get("amount") or 0.0)
+    category = request.form.get("category") or "General Expense"
+    
+    supabase_request("expenses", method="POST", data={
+        "store_id": store_id,
+        "title": title,
+        "amount": amount,
+        "category": category
+    })
+    return redirect(url_for("index"))
+
+@app.route("/sell_cart", methods=["POST"])
+def sell_cart():
+    if 'user' not in session: return redirect(url_for("auth_page"))
+    store_id = session.get('store_id')
+    cart_json = request.form.get("cart_data")
+    if not cart_json: return redirect(url_for("index"))
+    
+    try:
+        cart_items = json.loads(cart_json)
+    except:
+        return redirect(url_for("index"))
+        
+    for item in cart_items:
+        prod_id = item.get("id")
+        qty = int(item.get("qty", 1))
+        
+        products = supabase_request(f"products?id=eq.{prod_id}&select=*")
+        if not products: continue
+        product = products[0]
+        
+        current_stock = int(product.get("stock", 0))
+        if current_stock < qty: continue
+        
+        new_stock = current_stock - qty
+        total_price = float(product.get("price", 0)) * qty
+        
+        urllib.request.urlopen(urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/products?id=eq.{prod_id}",
+            data=json.dumps({"stock": new_stock}).encode("utf-8"),
+            headers={"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"},
+            method="PATCH"
+        ))
+        
+        supabase_request("sales", method="POST", data={
+            "store_id": store_id,
+            "product_name": product['name'],
+            "quantity": qty,
+            "total_price": total_price
+        })
+        
+        supabase_request("stock_movements", method="POST", data={
+            "store_id": store_id,
+            "type": "OUT",
+            "description": f"Sold: {product['name']} (Cart)",
+            "qty_change": -qty
+        })
+        
+    return redirect(url_for("index"))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-
