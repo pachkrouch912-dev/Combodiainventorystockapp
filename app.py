@@ -105,6 +105,8 @@ INDEX_TEMPLATE = """
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- HTML5 QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
     <div class="max-w-7xl mx-auto p-3 sm:p-6 lg:p-8" x-data="{ tab: 'dashboard', showLogoutMenu: false }">
@@ -211,9 +213,22 @@ INDEX_TEMPLATE = """
             </div>
         </div>
 
-        <!-- POS CART MULTI-ITEM TAB -->
+        <!-- POS CART MULTI-ITEM TAB WITH SCANNER -->
         <div x-show="tab === 'pos'" class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display: none;" x-data="{ 
             cart: [],
+            scannerOpen: false,
+            html5QrCode: null,
+            
+            addToCardByBarcode(scannedText) {
+                let productsList = {{ products | tojson }};
+                let foundProd = productsList.find(p => p.name.toLowerCase() === scannedText.toLowerCase() || p.id == scannedText);
+                if (foundProd) {
+                    this.addToCart(foundProd.id, foundProd.name, foundProd.price, foundProd.stock);
+                } else {
+                    alert('រកមិនឃើញទំនិញដែលមានកូដ: ' + scannedText);
+                }
+            },
+
             addToCart(id, name, price, stock) {
                 let found = this.cart.find(item => item.id === id);
                 if (found) {
@@ -225,10 +240,53 @@ INDEX_TEMPLATE = """
                 }
             },
             removeFromCart(index) { this.cart.splice(index, 1); },
-            get totalAmount() { return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0); }
+            get totalAmount() { return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0); },
+
+            startScanner() {
+                this.scannerOpen = true;
+                setTimeout(() => {
+                    this.html5QrCode = new Html5Qrcode('reader');
+                    this.html5QrCode.start(
+                        { facingMode: 'environment' },
+                        { fps: 10, qrbox: { width: 250, height: 150 } },
+                        (decodedText, decodedResult) => {
+                            this.addToCardByBarcode(decodedText);
+                            this.stopScanner();
+                        },
+                        (errorMessage) => {}
+                    ).catch(err => {
+                        console.error('Camera error', err);
+                        alert('មិនអាចបើកកាមេរ៉ាបានទេ សូមពិនិត្យការអនុញ្ញាត (Permission)!');
+                    });
+                }, 300);
+            },
+
+            stopScanner() {
+                if (this.html5QrCode) {
+                    this.html5QrCode.stop().then(() => {
+                        this.scannerOpen = false;
+                    }).catch(err => {
+                        this.scannerOpen = false;
+                    });
+                } else {
+                    this.scannerOpen = false;
+                }
+            }
         }">
             <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-                <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>🛍️</span> <span>ជ្រើសរើសទំនិញសម្រាប់លក់ (Products)</span></h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-2"><span>🛍️</span> <span>ជ្រើសរើសទំនិញ (Products)</span></h2>
+                    <button @click="startScanner()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1 shadow transition">
+                        <span>📷</span> <span>Scan Barcode</span>
+                    </button>
+                </div>
+
+                <!-- SCANNER MODAL / CONTAINER -->
+                <div x-show="scannerOpen" class="mb-4 bg-slate-950 p-4 rounded-xl border border-slate-700 text-center" style="display: none;">
+                    <div id="reader" class="w-full max-w-sm mx-auto overflow-hidden rounded-lg"></div>
+                    <button @click="stopScanner()" class="mt-3 bg-red-600 hover:bg-red-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">បិទកាមេរ៉ា (Close Camera)</button>
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-2">
                     {% for p in products %}
                     <div @click="addToCart('{{ p.id }}', '{{ p.name }}', {{ p.price }}, {{ p.stock }})" class="bg-slate-950 border border-slate-800 hover:border-emerald-500/50 p-4 rounded-xl cursor-pointer transition shadow flex justify-between items-center group">
@@ -260,7 +318,7 @@ INDEX_TEMPLATE = """
                                 </div>
                             </div>
                         </template>
-                        <p x-show="cart.length === 0" class="text-slate-500 italic text-center py-8 text-xs">កន្រ្តកទំនិញទറ്റ്‌ទាត់ទទេរ។</p>
+                        <p x-show="cart.length === 0" class="text-slate-500 italic text-center py-8 text-xs">កន្រ្តកទំនិញទទេរ។</p>
                     </div>
                 </div>
 
