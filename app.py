@@ -8,8 +8,9 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "cambodia-inventory-secure-secret-key")
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://dwqyrlrylworstasglsi.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cXlybHJ5bHdvcnN0YXNnbHNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTUwNTc3MCwiZXhwIjoyMTAxMDgxNzcwfQ.gR5rqaHs44_4pH-ufkdRRhsx1rt2jEAnP1d905Go5Rc")
+# ភ្ជាប់ជាមួយ Supabase Project របស់អ្នក
+SUPABASE_URL = "https://dwqyrlrylworstasglsi.supabase.co"
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cXlybHJ5bHdvcnN0YXNnbHNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4FS01NTc3MCwiZXhwIjoyMTAxMDgxNzcwfQ.gR5rqaHs44_4pH-ufkdRRhsx1rt2jEAnP1d905Go5Rc")
 
 def supabase_request(endpoint, method="GET", data=None):
     url = f"{SUPABASE_URL}/rest/v1/{endpoint}"
@@ -35,7 +36,7 @@ AUTH_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BizStockKH</title>
+    <title>BizStockKH - Authentication</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
@@ -100,7 +101,7 @@ INDEX_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Store Dashboard - SaaS Inventory & POS</title>
+    <title>Store Dashboard - BizStockKH</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -113,7 +114,7 @@ INDEX_TEMPLATE = """
             <div class="flex items-center space-x-3">
                 <div class="w-12 h-12 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl shadow-inner">⚡</div>
                 <div>
-                    <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight">Store POS & Accounting Hub</h1>
+                    <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight">BizStockKH</h1>
                     <p class="text-xs text-emerald-400 font-medium mt-0.5">Store ID: {{ store_id }}</p>
                 </div>
             </div>
@@ -474,7 +475,6 @@ def login():
     users = supabase_request(f"users?username=eq.{username}&select=*")
     if users and len(users) > 0:
         user = users[0]
-        # Check Hashed Password
         if check_password_hash(user['password'], password):
             session['user'] = user['name']
             session['store_id'] = user['store_id']
@@ -499,8 +499,6 @@ def signup():
         return render_template_string(AUTH_TEMPLATE, mode="signup", error="មានបញ្ហាពេលបង្កើតហាង សូមព្យាយាមម្ដងទៀត!")
         
     new_store_id = created_stores[0]["id"]
-    
-    # Hash password before saving to database
     hashed_password = generate_password_hash(password)
     
     created_users = supabase_request("users", method="POST", data={
@@ -645,7 +643,6 @@ def sell_cart():
         new_stock = current_stock - qty
         total_price = float(product.get("price", 0)) * qty
         
-        # Updated to use supabase_request helper function instead of raw urllib
         supabase_request(f"products?id=eq.{prod_id}", method="PATCH", data={"stock": new_stock})
         
         supabase_request("sales", method="POST", data={
