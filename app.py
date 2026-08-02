@@ -107,21 +107,41 @@ INDEX_TEMPLATE = """
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
-    <div class="max-w-7xl mx-auto p-3 sm:p-6 lg:p-8" x-data="{ tab: 'dashboard' }">
+    <div class="max-w-7xl mx-auto p-3 sm:p-6 lg:p-8" x-data="{ tab: 'dashboard', showLogoutMenu: false }">
         
         <!-- HEADER -->
         <header class="bg-gradient-to-r from-emerald-900 via-slate-900 to-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 shadow-xl">
             <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl shadow-inner">⚡</div>
-                <div>
-                    <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight">BizStockKH</h1>
-                    <p class="text-xs text-emerald-400 font-medium mt-0.5">Store ID: {{ store_id }}</p>
+                <span class="text-xs bg-slate-800/85 text-emerald-400 border border-emerald-500/30 px-3.5 py-2 rounded-xl flex items-center space-x-1.5 shadow-sm font-semibold">
+                    <span>👤</span> <span>{{ current_user }}</span>
+                </span>
+                
+                <!-- LOGO BIZSTOCKKH WITH DROPDOWN LOGOUT -->
+                <div class="relative" @click.outside="showLogoutMenu = false">
+                    <div @click="showLogoutMenu = !showLogoutMenu" class="flex items-center space-x-3 cursor-pointer group select-none">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl shadow-inner group-hover:border-emerald-400 transition">⚡</div>
+                        <div>
+                            <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight group-hover:text-emerald-400 transition flex items-center gap-1.5">
+                                <span>BizStockKH</span>
+                                <span class="text-xs text-slate-400">▼</span>
+                            </h1>
+                            <p class="text-xs text-emerald-400 font-medium mt-0.5">Store ID: {{ store_id }}</p>
+                        </div>
+                    </div>
+
+                    <!-- DROPDOWN MENU -->
+                    <div x-show="showLogoutMenu" style="display: none;" class="absolute left-0 mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl py-2 z-50 backdrop-blur-xl">
+                        <div class="px-4 py-2 border-b border-slate-800 text-xs text-slate-400">
+                            គណនី: <span class="font-bold text-white">{{ current_user }}</span>
+                        </div>
+                        <a href="/logout" class="w-full text-left px-4 py-2.5 text-xs font-semibold text-red-400 hover:bg-red-500/10 flex items-center space-x-2 transition">
+                            <span>🚪</span> <span>ចាកចេញ (Log Out)</span>
+                        </a>
+                    </div>
                 </div>
             </div>
+
             <div class="flex items-center justify-between w-full sm:w-auto space-x-3 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800">
-                <span class="text-xs bg-slate-800/80 text-slate-300 border border-slate-700 px-3.5 py-2 rounded-xl flex items-center space-x-1.5 shadow-sm">
-                    <span>👤</span> <span class="font-semibold">{{ current_user }}</span>
-                </span>
                 <a href="/logout" class="bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 text-xs font-semibold px-4 py-2 rounded-xl transition shadow">Logout</a>
             </div>
         </header>
@@ -487,7 +507,7 @@ def login():
 def signup():
     store_name = request.form.get("store_name")
     admin_fullname = request.form.get("admin_fullname")
-    username = request.form.get("username")
+    username = request.name = request.form.get("username")
     password = request.form.get("password")
 
     existing_user = supabase_request(f"users?username=eq.{username}&select=*")
@@ -607,7 +627,7 @@ def add_expense():
     store_id = session.get('store_id')
     title = request.form.get("title")
     amount = float(request.form.get("amount") or 0.0)
-    category = request.form.get("category") or "General Expense"
+    category = request.form.get("category") or "General Expense")
     
     supabase_request("expenses", method="POST", data={
         "store_id": store_id,
