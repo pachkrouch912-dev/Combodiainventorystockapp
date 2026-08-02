@@ -112,19 +112,17 @@ INDEX_TEMPLATE = """
         <!-- HEADER -->
         <header class="bg-gradient-to-r from-emerald-900 via-slate-900 to-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 shadow-xl">
             <div class="flex items-center space-x-3">
-                <span class="text-xs bg-slate-800/85 text-emerald-400 border border-emerald-500/30 px-3.5 py-2 rounded-xl flex items-center space-x-1.5 shadow-sm font-semibold">
-                    <span>👤</span> <span>{{ current_user }}</span>
-                </span>
                 
-                <!-- LOGO BIZSTOCKKH WITH DROPDOWN LOGOUT -->
+                <!-- LOGO BIZSTOCKKH WITH USERNAME & DROPDOWN LOGOUT -->
                 <div class="relative" @click.outside="showLogoutMenu = false">
                     <div @click="showLogoutMenu = !showLogoutMenu" class="flex items-center space-x-3 cursor-pointer group select-none">
                         <div class="w-12 h-12 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl shadow-inner group-hover:border-emerald-400 transition">⚡</div>
                         <div>
-                            <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight group-hover:text-emerald-400 transition flex items-center gap-1.5">
-                                <span>BizStockKH</span>
+                            <div class="flex items-center space-x-2">
+                                <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight group-hover:text-emerald-400 transition">BizStockKH</h1>
+                                <span class="text-xs bg-slate-800/90 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-lg font-semibold">👤 {{ current_user }}</span>
                                 <span class="text-xs text-slate-400">▼</span>
-                            </h1>
+                            </div>
                             <p class="text-xs text-emerald-400 font-medium mt-0.5">Store ID: {{ store_id }}</p>
                         </div>
                     </div>
@@ -139,10 +137,6 @@ INDEX_TEMPLATE = """
                         </a>
                     </div>
                 </div>
-            </div>
-
-            <div class="flex items-center justify-between w-full sm:w-auto space-x-3 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800">
-                <a href="/logout" class="bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 text-xs font-semibold px-4 py-2 rounded-xl transition shadow">Logout</a>
             </div>
         </header>
 
@@ -507,7 +501,7 @@ def login():
 def signup():
     store_name = request.form.get("store_name")
     admin_fullname = request.form.get("admin_fullname")
-    username = request.name = request.form.get("username")
+    username = request.form.get("username")
     password = request.form.get("password")
 
     existing_user = supabase_request(f"users?username=eq.{username}&select=*")
