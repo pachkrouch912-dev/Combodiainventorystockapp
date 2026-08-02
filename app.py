@@ -211,7 +211,7 @@ INDEX_TEMPLATE = """
             </div>
         </div>
 
-        <!-- POS CART MULTI-ITEM TAB (BOTH CLICK AND SCAN BARCODE AVAILABLE) -->
+        <!-- POS CART MULTI-ITEM TAB -->
         <div x-show="tab === 'pos'" class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display: none;" x-data="{ 
             cart: [],
             scannerOpen: false,
@@ -219,7 +219,6 @@ INDEX_TEMPLATE = """
             
             addToCardByBarcode(scannedText) {
                 let productsList = {{ products | tojson }};
-                // ឆែករកមើលតាម barcode ឬ ឈ្មោះ ឬ id
                 let foundProd = productsList.find(p => (p.barcode && p.barcode.toLowerCase() === scannedText.toLowerCase()) || p.name.toLowerCase() === scannedText.toLowerCase() || p.id == scannedText);
                 if (foundProd) {
                     this.addToCart(foundProd.id, foundProd.name, foundProd.price, foundProd.stock);
@@ -272,7 +271,6 @@ INDEX_TEMPLATE = """
                 }
             }
         }">
-            <!-- ផ្នែកជ្រើសរើសទំនិញ (មានទាំងចុច និង ប៊ូតុង Scan Barcode) -->
             <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-2"><span>🛍️</span> <span>ជ្រើសរើសទំនិញ (Click or Scan Barcode)</span></h2>
@@ -281,13 +279,11 @@ INDEX_TEMPLATE = """
                     </button>
                 </div>
 
-                <!-- SCANNER MODAL / CONTAINER -->
                 <div x-show="scannerOpen" class="mb-4 bg-slate-950 p-4 rounded-xl border border-slate-700 text-center" style="display: none;">
                     <div id="reader" class="w-full max-w-sm mx-auto overflow-hidden rounded-lg"></div>
                     <button @click="stopScanner()" class="mt-3 bg-red-600 hover:bg-red-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">បិទកាមេរ៉ា (Close Camera)</button>
                 </div>
 
-                <!-- បញ្ជីទំនិញសម្រាប់ចុចផ្ទាល់ដោយដៃ -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-2">
                     {% for p in products %}
                     <div @click="addToCart('{{ p.id }}', '{{ p.name }}', {{ p.price }}, {{ p.stock }})" class="bg-slate-950 border border-slate-800 hover:border-emerald-500/50 p-4 rounded-xl cursor-pointer transition shadow flex justify-between items-center group">
@@ -304,7 +300,6 @@ INDEX_TEMPLATE = """
                 </div>
             </div>
 
-            <!-- ផ្នែកកន្រ្តកទំនិញ (Cart Summary) -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
                 <div>
                     <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>🛒</span> <span>កន្រ្តកទំនិញ (Cart Summary)</span></h2>
@@ -336,7 +331,7 @@ INDEX_TEMPLATE = """
             </div>
         </div>
 
-        <!-- ADD PRODUCT TAB (មានកន្លវ៉ាតបញ្ចូល Barcode) -->
+        <!-- ADD PRODUCT TAB -->
         <div x-show="tab === 'add'" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl max-w-xl mx-auto" style="display: none;">
             <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>➕</span> <span>Add New Product</span></h2>
             <form action="/add" method="POST" class="space-y-4">
@@ -574,13 +569,15 @@ def signup():
     if existing_user and len(existing_user) > 0:
         return render_template_string(AUTH_TEMPLATE, mode="signup", error="ឈ្មោះ Username នេះមានគេប្រើរួចហើយ!")
 
+    # 1. បង្កើតហាងថ្មីក្នុង Supabase (Stores Table)
     created_stores = supabase_request("stores", method="POST", data={"name": store_name})
     if not created_stores:
-        return render_template_string(AUTH_TEMPLATE, mode="signup", error="មានបញ្ហាពេលបង្កើតហាង សូមព្យាយាមម្ដងទៀត!")
+        return render_template_string(AUTH_TEMPLATE, mode="signup", error="មានបញ្ហាពេលបង្កើតហាង (សូមពិនិត្យ RLS Policies ក្នុង Supabase)")
         
     new_store_id = created_stores[0]["id"]
     hashed_password = generate_password_hash(password)
     
+    # 2. បង្កើតគណនី Admin ថ្មី (Users Table)
     created_users = supabase_request("users", method="POST", data={
         "store_id": new_store_id,
         "name": admin_fullname,
@@ -590,7 +587,7 @@ def signup():
     })
 
     if not created_users:
-        return render_template_string(AUTH_TEMPLATE, mode="signup", error="មានបញ្ហាពេលបង្កើតគណនី Admin!")
+        return render_template_string(AUTH_TEMPLATE, mode="signup", error="មានបញ្ហាពេលបង្កើតគណនី Admin (សូមពិនិត្យ Column ក្នុង Table users)")
 
     user = created_users[0]
     session['user'] = user['name']
