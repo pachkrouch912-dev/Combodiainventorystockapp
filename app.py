@@ -35,7 +35,7 @@ AUTH_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SaaS Inventory Hub - Authentication</title>
+    <title>BizStockKH</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
@@ -43,7 +43,7 @@ AUTH_TEMPLATE = """
     <div class="max-w-md w-full bg-slate-900/95 backdrop-blur-xl border border-slate-700/60 rounded-2xl p-8 shadow-2xl" x-data="{ mode: '{{ mode|default('login') }}' }">
         <div class="text-center mb-6">
             <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 text-3xl mb-3 shadow-inner">⚡</div>
-            <h1 class="text-2xl font-bold tracking-tight text-white">SaaS Inventory & POS</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-white">BizStockKH</h1>
             <p class="text-xs text-slate-400 mt-1" x-text="mode === 'login' ? 'សូមបញ្ចូលគណនីហាងរបស់អ្នកដើម្បីចូលកាន់ប្រព័ន្ធ' : 'បង្កើតហាង និងគណនី Admin របស់អ្នកថ្មី'"></p>
         </div>
 
