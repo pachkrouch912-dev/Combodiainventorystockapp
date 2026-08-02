@@ -8,7 +8,6 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "cambodia-inventory-secure-secret-key")
 
-# ភ្ជាប់ជាមួយ Supabase Project របស់អ្នក
 SUPABASE_URL = "https://dwqyrlrylworstasglsi.supabase.co"
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cXlybHJ5bHdvcnN0YXNnbHNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4FS01NTc3MCwiZXhwIjoyMTAxMDgxNzcwfQ.gR5rqaHs44_4pH-ufkdRRhsx1rt2jEAnP1d905Go5Rc")
 
@@ -192,7 +191,7 @@ INDEX_TEMPLATE = """
                 <table class="w-full text-left border-collapse min-w-[500px]">
                     <thead>
                         <tr class="border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                            <th class="p-3">Product Name</th><th class="p-3">Category</th><th class="p-3">Price</th><th class="p-3">Current Stock</th>
+                            <th class="p-3">Product Name</th><th class="p-3">Category</th><th class="p-3">Barcode</th><th class="p-3">Price</th><th class="p-3">Current Stock</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800 text-sm">
@@ -200,18 +199,19 @@ INDEX_TEMPLATE = """
                         <tr class="hover:bg-slate-800/50 transition">
                             <td class="p-3 font-semibold text-white">{{ p.name }}</td>
                             <td class="p-3 text-slate-300">{{ p.category }}</td>
+                            <td class="p-3 text-xs text-slate-400 font-mono">{{ p.barcode or '-' }}</td>
                             <td class="p-3 text-slate-300">${{ "%.2f"|format(p.price) }}</td>
                             <td class="p-3 font-bold text-amber-400">⚠️ {{ p.stock }}</td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="4" class="p-6 text-center text-slate-500 italic">មិនមានទំនិញជិតអស់ក្នុងស្តុកទេ។</td></tr>
+                        <tr><td colspan="5" class="p-6 text-center text-slate-500 italic">មិនមានទំនិញជិតអស់ក្នុងស្តុកទេ។</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- POS CART MULTI-ITEM TAB (BOTH CLICK AND SCAN AVAILABLE) -->
+        <!-- POS CART MULTI-ITEM TAB (BOTH CLICK AND SCAN BARCODE AVAILABLE) -->
         <div x-show="tab === 'pos'" class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display: none;" x-data="{ 
             cart: [],
             scannerOpen: false,
@@ -219,11 +219,12 @@ INDEX_TEMPLATE = """
             
             addToCardByBarcode(scannedText) {
                 let productsList = {{ products | tojson }};
-                let foundProd = productsList.find(p => p.name.toLowerCase() === scannedText.toLowerCase() || p.id == scannedText);
+                // ឆែករកមើលតាម barcode ឬ ឈ្មោះ ឬ id
+                let foundProd = productsList.find(p => (p.barcode && p.barcode.toLowerCase() === scannedText.toLowerCase()) || p.name.toLowerCase() === scannedText.toLowerCase() || p.id == scannedText);
                 if (foundProd) {
                     this.addToCart(foundProd.id, foundProd.name, foundProd.price, foundProd.stock);
                 } else {
-                    alert('រកមិនឃើញទំនិញដែលមានកូដ: ' + scannedText);
+                    alert('រកមិនឃើញទំនិញដែលមាន Barcode/កូដ: ' + scannedText);
                 }
             },
 
@@ -271,10 +272,10 @@ INDEX_TEMPLATE = """
                 }
             }
         }">
-            <!-- ផ្នែកជ្រើសរើសទំនិញ (មានទាំងចុច និង ប៊ូតុង Scan) -->
+            <!-- ផ្នែកជ្រើសរើសទំនិញ (មានទាំងចុច និង ប៊ូតុង Scan Barcode) -->
             <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-2"><span>🛍️</span> <span>ជ្រើសរើសទំនិញ (Click or Scan)</span></h2>
+                    <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-2"><span>🛍️</span> <span>ជ្រើសរើសទំនិញ (Click or Scan Barcode)</span></h2>
                     <button @click="startScanner()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1 shadow transition">
                         <span>📷</span> <span>Scan Barcode</span>
                     </button>
@@ -292,6 +293,7 @@ INDEX_TEMPLATE = """
                     <div @click="addToCart('{{ p.id }}', '{{ p.name }}', {{ p.price }}, {{ p.stock }})" class="bg-slate-950 border border-slate-800 hover:border-emerald-500/50 p-4 rounded-xl cursor-pointer transition shadow flex justify-between items-center group">
                         <div>
                             <h4 class="font-semibold text-white text-sm group-hover:text-emerald-400 transition">{{ p.name }}</h4>
+                            <p class="text-xs text-slate-400 mt-0.5">Barcode: <span class="font-mono text-slate-300">{{ p.barcode or 'គ្មាន' }}</span></p>
                             <p class="text-xs text-slate-400 mt-0.5">ស្តុកសល់: <span class="font-bold text-emerald-400">{{ p.stock }}</span></p>
                         </div>
                         <span class="text-emerald-400 font-bold text-sm bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">${{ "%.2f"|format(p.price) }}</span>
@@ -334,7 +336,7 @@ INDEX_TEMPLATE = """
             </div>
         </div>
 
-        <!-- ADD PRODUCT TAB -->
+        <!-- ADD PRODUCT TAB (មានកន្លវ៉ាតបញ្ចូល Barcode) -->
         <div x-show="tab === 'add'" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl max-w-xl mx-auto" style="display: none;">
             <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>➕</span> <span>Add New Product</span></h2>
             <form action="/add" method="POST" class="space-y-4">
@@ -344,11 +346,15 @@ INDEX_TEMPLATE = """
                         <input type="text" name="name" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500">
                     </div>
                     <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Barcode (លេខកូដទំនិញ)</label>
+                        <input type="text" name="barcode" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500 font-mono" placeholder="ឧ. 885123456789">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
                         <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Price ($)</label>
                         <input type="number" step="0.01" name="price" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500">
                     </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Category</label>
                         <input type="text" name="category" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500" value="General">
@@ -413,7 +419,7 @@ INDEX_TEMPLATE = """
             <table class="w-full text-left border-collapse min-w-[500px]">
                 <thead>
                     <tr class="border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        <th class="p-3">Name</th><th class="p-3">Category</th><th class="p-3">Price</th><th class="p-3">Stock</th>
+                        <th class="p-3">Name</th><th class="p-3">Category</th><th class="p-3">Barcode</th><th class="p-3">Price</th><th class="p-3">Stock</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800 text-sm">
@@ -421,11 +427,12 @@ INDEX_TEMPLATE = """
                     <tr class="hover:bg-slate-800/50 transition">
                         <td class="p-3 font-semibold text-white">{{ p.name }}</td>
                         <td class="p-3 text-slate-300">{{ p.category }}</td>
+                        <td class="p-3 text-xs text-slate-400 font-mono">{{ p.barcode or '-' }}</td>
                         <td class="p-3 text-slate-300">${{ "%.2f"|format(p.price) }}</td>
                         <td class="p-3 font-bold text-emerald-400">{{ p.stock }}</td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="4" class="p-8 text-center text-slate-500 italic">មិនមានទំនិញក្នុងស្តុកទេ។</td></tr>
+                    <tr><td colspan="5" class="p-8 text-center text-slate-500 italic">មិនមានទំនិញក្នុងស្តុកទេ។</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -654,11 +661,13 @@ def add_product():
     if 'user' not in session: return redirect(url_for("auth_page"))
     store_id = session.get('store_id')
     name = request.form.get("name")
+    barcode = request.form.get("barcode") or ""
     stock_qty = int(request.form.get("stock") or 0)
     
     prod_res = supabase_request("products", method="POST", data={
         "store_id": store_id,
         "name": name,
+        "barcode": barcode,
         "category": request.form.get("category") or "General",
         "price": float(request.form.get("price") or 0.0),
         "stock": stock_qty
