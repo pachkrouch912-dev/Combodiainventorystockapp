@@ -114,8 +114,6 @@ INDEX_TEMPLATE = """
         <!-- HEADER -->
         <header class="bg-gradient-to-r from-emerald-900 via-slate-900 to-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 shadow-xl">
             <div class="flex items-center space-x-3">
-                
-                <!-- LOGO BIZSTOCKKH WITH USERNAME & DROPDOWN LOGOUT -->
                 <div class="relative" @click.outside="showLogoutMenu = false">
                     <div @click="showLogoutMenu = !showLogoutMenu" class="flex items-center space-x-3 cursor-pointer group select-none">
                         <div class="w-12 h-12 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl shadow-inner group-hover:border-emerald-400 transition">⚡</div>
@@ -213,7 +211,7 @@ INDEX_TEMPLATE = """
             </div>
         </div>
 
-        <!-- POS CART MULTI-ITEM TAB WITH SCANNER -->
+        <!-- POS CART MULTI-ITEM TAB (BOTH CLICK AND SCAN AVAILABLE) -->
         <div x-show="tab === 'pos'" class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display: none;" x-data="{ 
             cart: [],
             scannerOpen: false,
@@ -273,9 +271,10 @@ INDEX_TEMPLATE = """
                 }
             }
         }">
+            <!-- ផ្នែកជ្រើសរើសទំនិញ (មានទាំងចុច និង ប៊ូតុង Scan) -->
             <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-2"><span>🛍️</span> <span>ជ្រើសរើសទំនិញ (Products)</span></h2>
+                    <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-2"><span>🛍️</span> <span>ជ្រើសរើសទំនិញ (Click or Scan)</span></h2>
                     <button @click="startScanner()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1 shadow transition">
                         <span>📷</span> <span>Scan Barcode</span>
                     </button>
@@ -287,6 +286,7 @@ INDEX_TEMPLATE = """
                     <button @click="stopScanner()" class="mt-3 bg-red-600 hover:bg-red-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">បិទកាមេរ៉ា (Close Camera)</button>
                 </div>
 
+                <!-- បញ្ជីទំនិញសម្រាប់ចុចផ្ទាល់ដោយដៃ -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-2">
                     {% for p in products %}
                     <div @click="addToCart('{{ p.id }}', '{{ p.name }}', {{ p.price }}, {{ p.stock }})" class="bg-slate-950 border border-slate-800 hover:border-emerald-500/50 p-4 rounded-xl cursor-pointer transition shadow flex justify-between items-center group">
@@ -302,6 +302,7 @@ INDEX_TEMPLATE = """
                 </div>
             </div>
 
+            <!-- ផ្នែកកន្រ្តកទំនិញ (Cart Summary) -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
                 <div>
                     <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>🛒</span> <span>កន្រ្តកទំនិញ (Cart Summary)</span></h2>
