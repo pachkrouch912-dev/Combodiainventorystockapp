@@ -43,7 +43,7 @@ AUTH_TEMPLATE = """
         <div class="text-center mb-6">
             <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 text-3xl mb-3 shadow-inner">⚡</div>
             <h1 class="text-2xl font-bold tracking-tight text-white">BizStockKH</h1>
-            <p class="text-xs text-slate-400 mt-1" x-text="mode === 'login' ? 'សូមបញ្ចូលគណនីហាងរបស់អ្នកដើម្បីចូលកាន់ប្រព័ន្ធ' : 'បង្កើតហាង និងគណនី Admin របស់អ្នកថ្មី'"></p>
+            <p class="text-xs text-slate-400 mt-1" x-text="mode === 'login' ? 'សូមបញ្ចូលគណនីហាងរបស់អ្នកเพื่อចូលកាន់ប្រព័ន្ធ' : 'បង្កើតហាង និងគណនី Admin របស់អ្នកថ្មី'"></p>
         </div>
 
         {% if error %}
@@ -210,65 +210,7 @@ INDEX_TEMPLATE = """
         </div>
 
         <!-- POS CART MULTI-ITEM TAB -->
-        <div x-show="tab === 'pos'" class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display: none;" x-data="{ 
-            cart: [],
-            scannerOpen: false,
-            html5QrCode: null,
-            
-            addToCardByBarcode(scannedText) {
-                let productsList = {{ products | tojson }};
-                let foundProd = productsList.find(p => (p.barcode && p.barcode.toLowerCase() === scannedText.toLowerCase()) || p.name.toLowerCase() === scannedText.toLowerCase() || p.id == scannedText);
-                if (foundProd) {
-                    this.addToCart(foundProd.id, foundProd.name, foundProd.price, foundProd.stock);
-                } else {
-                    alert('រកមិនឃើញទំនិញដែលមាន Barcode/កូដ: ' + scannedText);
-                }
-            },
-
-            addToCart(id, name, price, stock) {
-                let found = this.cart.find(item => item.id === id);
-                if (found) {
-                    if (found.qty < stock) { found.qty++; }
-                    else { alert('ស្តុកក្នុងឃ្លាំងមិនគ្រប់គ្រាន់ទេ!'); }
-                } else {
-                    if (stock > 0) { this.cart.push({id: id, name: name, price: price, qty: 1, stock: stock}); }
-                    else { alert('ទំនិញនេះអស់ពីស្តុកហើយ!'); }
-                }
-            },
-            removeFromCart(index) { this.cart.splice(index, 1); },
-            get totalAmount() { return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0); },
-
-            startScanner() {
-                this.scannerOpen = true;
-                setTimeout(() => {
-                    this.html5QrCode = new Html5Qrcode('reader');
-                    this.html5QrCode.start(
-                        { facingMode: 'environment' },
-                        { fps: 10, qrbox: { width: 250, height: 150 } },
-                        (decodedText, decodedResult) => {
-                            this.addToCardByBarcode(decodedText);
-                            this.stopScanner();
-                        },
-                        (errorMessage) => {}
-                    ).catch(err => {
-                        console.error('Camera error', err);
-                        alert('មិនអាចបើកកាមេរ៉ាបានទេ សូមពិនិត្យការអនុញ្ញាត (Permission)!');
-                    });
-                }, 300);
-            },
-
-            stopScanner() {
-                if (this.html5QrCode) {
-                    this.html5QrCode.stop().then(() => {
-                        this.scannerOpen = false;
-                    }).catch(err => {
-                        this.scannerOpen = false;
-                    });
-                } else {
-                    this.scannerOpen = false;
-                }
-            }
-        }">
+        <div x-show="tab === 'pos'" class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display: none;" x-data="posApp()">
             <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-2"><span>🛍️</span> <span>ជ្រើសរើសទំនិញ (Click or Scan Barcode)</span></h2>
@@ -484,6 +426,68 @@ INDEX_TEMPLATE = """
     </div>
 
     <script>
+        function posApp() {
+            return {
+                cart: [],
+                scannerOpen: false,
+                html5QrCode: null,
+                productsList: {{ products | tojson }},
+                
+                addToCardByBarcode(scannedText) {
+                    let foundProd = this.productsList.find(p => (p.barcode && p.barcode.toLowerCase() === scannedText.toLowerCase()) || p.name.toLowerCase() === scannedText.toLowerCase() || p.id == scannedText);
+                    if (foundProd) {
+                        this.addToCart(foundProd.id, foundProd.name, foundProd.price, foundProd.stock);
+                    } else {
+                        alert('រកមិនឃើញទំនិញដែលមាន Barcode/កូដ: ' + scannedText);
+                    }
+                },
+
+                addToCart(id, name, price, stock) {
+                    let found = this.cart.find(item => item.id === id);
+                    if (found) {
+                        if (found.qty < stock) { found.qty++; }
+                        else { alert('ស្តុកក្នុងឃ្លាំងមិនគ្រប់គ្រាន់ទេ!'); }
+                    } else {
+                        if (stock > 0) { this.cart.push({id: id, name: name, price: price, qty: 1, stock: stock}); }
+                        else { alert('ទំនិញនេះអស់ពីស្តុកហើយ!'); }
+                    }
+                },
+                removeFromCart(index) { this.cart.splice(index, 1); },
+                get totalAmount() { return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0); },
+
+                startScanner() {
+                    this.scannerOpen = true;
+                    setTimeout(() => {
+                        this.html5QrCode = new Html5Qrcode('reader');
+                        this.html5QrCode.start(
+                            { facingMode: 'environment' },
+                            { fps: 10, qrbox: { width: 250, height: 150 } },
+                            (decodedText, decodedResult) => {
+                                this.addToCardByBarcode(decodedText);
+                                this.stopScanner();
+                            },
+                            (errorMessage) => {}
+                        ).catch(err => {
+                            console.error('Camera error', err);
+                            alert('មិនអាចបើកកាមេរ៉ាได้ទេ សូមពិនិត្យការអនុញ្ញាត (Permission)!');
+                        });
+                    }, 300);
+                },
+
+                stopScanner() {
+                    if (this.html5QrCode) {
+                        this.html5QrCode.stop().then(() => {
+                            this.scannerOpen = false;
+                        }).catch(err => {
+                            this.scannerOpen = false;
+                        });
+                    } else {
+                        this.scannerOpen = false;
+                    }
+                }
+            }
+        }
+
         const salesData = {{ sales_chart_data | safe }};
         const movementData = {{ movement_chart_data | safe }};
 
@@ -565,7 +569,7 @@ def signup():
 
     existing_user = supabase_request(f"users?username=eq.{username}&select=*")
     if existing_user and len(existing_user) > 0:
-        return render_template_string(AUTH_TEMPLATE, mode="signup", error="ឈ្មោះ Username នេះមានគេប្រើរួចហើយ!")
+        return render_template_string(AUTH_TEMPLATE, mode="signup", error="ឈ្មោះ Username នេះมีគេប្រើរួចហើយ!")
 
     created_stores = supabase_request("stores", method="POST", data={"name": store_name})
     if not created_stores:
