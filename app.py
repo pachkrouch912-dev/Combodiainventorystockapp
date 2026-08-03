@@ -43,7 +43,7 @@ AUTH_TEMPLATE = """
         <div class="text-center mb-6">
             <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 text-3xl mb-3 shadow-inner">⚡</div>
             <h1 class="text-2xl font-bold tracking-tight text-white">BizStockKH</h1>
-            <p class="text-xs text-slate-400 mt-1" x-text="mode === 'login' ? 'សូមបញ្ចូលគណនីហាងរបស់អ្នកเพื่อចូលកាន់ប្រព័ន្ធ' : 'បង្កើតហាង និងគណនី Admin របស់អ្នកថ្មី'"></p>
+            <p class="text-xs text-slate-400 mt-1" x-text="mode === 'login' ? 'សូមបញ្ចូលគណនីហាងរបស់អ្នកដើម្បីចូលកាន់ប្រព័ន្ធ' : 'បង្កើតហាង និងគណនី Admin របស់អ្នកថ្មី'"></p>
         </div>
 
         {% if error %}
@@ -209,58 +209,40 @@ INDEX_TEMPLATE = """
             </div>
         </div>
 
-        <!-- POS CART MULTI-ITEM TAB -->
-        <div x-show="tab === 'pos'" class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display: none;" x-data="posApp()">
-            <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-2"><span>🛍️</span> <span>ជ្រើសរើសទំនិញ (Click or Scan Barcode)</span></h2>
-                    <button @click="startScanner()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1 shadow transition">
-                        <span>📷</span> <span>Scan Barcode</span>
-                    </button>
-                </div>
+        <!-- POS SCANNER ONLY TAB -->
+        <div x-show="tab === 'pos'" class="max-w-xl mx-auto space-y-6" style="display: none;" x-data="posApp()">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl text-center">
+                <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center justify-center space-x-2"><span>📷</span> <span>SCAN BARCODE TO SELL</span></h2>
+                
+                <button @click="startScanner()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl text-base font-bold flex items-center justify-center space-x-2 shadow-lg transition">
+                    <span>📷</span> <span>បើកកាមេរ៉ាស្កែន (Open Barcode Scanner)</span>
+                </button>
 
-                <div x-show="scannerOpen" class="mb-4 bg-slate-950 p-4 rounded-xl border border-slate-700 text-center" style="display: none;">
+                <div x-show="scannerOpen" class="mt-4 bg-slate-950 p-4 rounded-xl border border-slate-700" style="display: none;">
                     <div id="reader" class="w-full max-w-sm mx-auto overflow-hidden rounded-lg"></div>
-                    <button @click="stopScanner()" class="mt-3 bg-red-600 hover:bg-red-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">បិទកាមេរ៉ា (Close Camera)</button>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-2">
-                    {% for p in products %}
-                    <div @click="addToCart('{{ p.id }}', '{{ p.name }}', {{ p.price }}, {{ p.stock }})" class="bg-slate-950 border border-slate-800 hover:border-emerald-500/50 p-4 rounded-xl cursor-pointer transition shadow flex justify-between items-center group">
-                        <div>
-                            <h4 class="font-semibold text-white text-sm group-hover:text-emerald-400 transition">{{ p.name }}</h4>
-                            <p class="text-xs text-slate-400 mt-0.5">Barcode: <span class="font-mono text-slate-300">{{ p.barcode or 'គ្មាន' }}</span></p>
-                            <p class="text-xs text-slate-400 mt-0.5">ស្តុកសល់: <span class="font-bold text-emerald-400">{{ p.stock }}</span></p>
-                        </div>
-                        <span class="text-emerald-400 font-bold text-sm bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">${{ "%.2f"|format(p.price) }}</span>
-                    </div>
-                    {% else %}
-                    <p class="text-slate-500 italic col-span-2 text-center py-6">មិនមានទំនិញសម្រាប់លក់ទេ។</p>
-                    {% endfor %}
+                    <button @click="stopScanner()" class="mt-3 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-semibold">បិទកាមេរ៉ា (Close Camera)</button>
                 </div>
             </div>
 
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
-                <div>
-                    <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>🛒</span> <span>កន្រ្តកទំនិញ (Cart Summary)</span></h2>
-                    <div class="space-y-3 max-h-[300px] overflow-y-auto pr-1 mb-4">
-                        <template x-for="(item, index) in cart" :key="index">
-                            <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl flex justify-between items-center text-xs">
-                                <div>
-                                    <h5 class="font-semibold text-white" x-text="item.name"></h5>
-                                    <p class="text-slate-400 mt-0.5"><span x-text="item.qty"></span> x $<span x-text="item.price.toFixed(2)"></span></p>
-                                </div>
-                                <div class="flex items-center space-x-3">
-                                    <span class="font-bold text-emerald-400" x-text="'$' + (item.price * item.qty).toFixed(2)"></span>
-                                    <button @click="removeFromCart(index)" class="text-red-400 hover:text-red-300 font-bold px-1.5 py-0.5 bg-red-500/10 rounded border border-red-500/20">✕</button>
-                                </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center space-x-2"><span>🛒</span> <span>កន្រ្តកទំនិញ (Cart Summary)</span></h2>
+                <div class="space-y-3 max-h-[300px] overflow-y-auto pr-1 mb-4">
+                    <template x-for="(item, index) in cart" :key="index">
+                        <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl flex justify-between items-center text-xs">
+                            <div>
+                                <h5 class="font-semibold text-white" x-text="item.name"></h5>
+                                <p class="text-slate-400 mt-0.5"><span x-text="item.qty"></span> x $<span x-text="item.price.toFixed(2)"></span></p>
                             </div>
-                        </template>
-                        <p x-show="cart.length === 0" class="text-slate-500 italic text-center py-8 text-xs">កន្រ្តកទំនិញទទេរ។</p>
-                    </div>
+                            <div class="flex items-center space-x-3">
+                                <span class="font-bold text-emerald-400" x-text="'$' + (item.price * item.qty).toFixed(2)"></span>
+                                <button @click="removeFromCart(index)" class="text-red-400 hover:text-red-300 font-bold px-1.5 py-0.5 bg-red-500/10 rounded border border-red-500/20">✕</button>
+                            </div>
+                        </div>
+                    </template>
+                    <p x-show="cart.length === 0" class="text-slate-500 italic text-center py-8 text-xs">កន្រ្តកទំនិញទទេរ (សូមស្កែនបាកូដទំនិញ)</p>
                 </div>
 
-                <form action="/sell_cart" method="POST" class="border-t border-slate-800 pt-4 mt-auto">
+                <form action="/sell_cart" method="POST" class="border-t border-slate-800 pt-4">
                     <input type="hidden" name="cart_data" :value="JSON.stringify(cart)">
                     <div class="flex justify-between items-center mb-4">
                         <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">សរុបទឹកប្រាក់ (Total):</span>
@@ -281,8 +263,8 @@ INDEX_TEMPLATE = """
                         <input type="text" name="name" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Barcode (លេខកូដទំនិញ)</label>
-                        <input type="text" name="barcode" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500 font-mono" placeholder="ឧ. 885123456789">
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Barcode (ທາງເລືອກ)</label>
+                        <input type="text" name="barcode" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500 font-mono" placeholder="ទុកទំនេរក៏បាន">
                     </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -469,7 +451,7 @@ INDEX_TEMPLATE = """
                             (errorMessage) => {}
                         ).catch(err => {
                             console.error('Camera error', err);
-                            alert('មិនអាចបើកកាមេរ៉ាได้ទេ សូមពិនិត្យការអនុញ្ញាត (Permission)!');
+                            alert('មិនអាចបើកកាមេរ៉ាបានទេ សូមពិនិត្យការអនុញ្ញាត (Permission)!');
                         });
                     }, 300);
                 },
@@ -569,7 +551,7 @@ def signup():
 
     existing_user = supabase_request(f"users?username=eq.{username}&select=*")
     if existing_user and len(existing_user) > 0:
-        return render_template_string(AUTH_TEMPLATE, mode="signup", error="ឈ្មោះ Username នេះมีគេប្រើរួចហើយ!")
+        return render_template_string(AUTH_TEMPLATE, mode="signup", error="ឈ្មោះ Username នេះមានគេប្រើរួចហើយ!")
 
     created_stores = supabase_request("stores", method="POST", data={"name": store_name})
     if not created_stores:
