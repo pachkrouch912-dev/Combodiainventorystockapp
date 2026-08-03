@@ -9,7 +9,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "cambodia-inventory-secure-secret-key")
 
 SUPABASE_URL = "https://dwqyrlrylworstasglsi.supabase.co"
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", sb_secret_9p4HkG5QNsIEk05O1OJtCw_5ZZ8nWp0")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cXlybHJ5bHdvcnN0YXNnbHNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4FS01NTc3MCwiZXhwIjoyMTAxMDgxNzcwfQ.gR5rqaHs44_4pH-ufkdRRhsx1rt2jEAnP1d905Go5Rc")
 
 def supabase_request(endpoint, method="GET", data=None):
     url = f"{SUPABASE_URL}/rest/v1/{endpoint}"
@@ -104,7 +104,6 @@ INDEX_TEMPLATE = """
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- HTML5 QR Code Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
@@ -254,7 +253,7 @@ INDEX_TEMPLATE = """
                         (errorMessage) => {}
                     ).catch(err => {
                         console.error('Camera error', err);
-                        alert('មិនអាចបើកកាមេរ៉ាបានទេ សូមពិនិត្យការអនុញ្ញាត (Permission)!');
+                        alert('មិនអាចបើកកាមេរ៉ាได้ទេ សូមពិនិត្យការអនុញ្ញាត (Permission)!');
                     });
                 }, 300);
             },
@@ -569,7 +568,6 @@ def signup():
     if existing_user and len(existing_user) > 0:
         return render_template_string(AUTH_TEMPLATE, mode="signup", error="ឈ្មោះ Username នេះមានគេប្រើរួចហើយ!")
 
-    # 1. បង្កើតហាងថ្មីក្នុង Supabase (Stores Table)
     created_stores = supabase_request("stores", method="POST", data={"name": store_name})
     if not created_stores:
         return render_template_string(AUTH_TEMPLATE, mode="signup", error="មានបញ្ហាពេលបង្កើតហាង (សូមពិនិត្យ RLS Policies ក្នុង Supabase)")
@@ -577,7 +575,6 @@ def signup():
     new_store_id = created_stores[0]["id"]
     hashed_password = generate_password_hash(password)
     
-    # 2. បង្កើតគណនី Admin ថ្មី (Users Table)
     created_users = supabase_request("users", method="POST", data={
         "store_id": new_store_id,
         "name": admin_fullname,
@@ -742,4 +739,3 @@ def sell_cart():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-
